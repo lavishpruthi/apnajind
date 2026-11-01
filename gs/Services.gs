@@ -597,6 +597,11 @@ class DiscoveryService {
         .filter((b) => b.status === "approved")
         .map((b) => [String(b.id), b]),
     );
+    const customerNames = new Map(
+      new CustomerRepo()
+        .all()
+        .map((customer) => [String(customer.id), customer.name]),
+    );
     return new ReviewRepo()
       .all()
       .filter(
@@ -609,12 +614,35 @@ class DiscoveryService {
         id: r.id,
         businessId: r.businessId,
         businessName: businesses.get(String(r.businessId)).name,
+        customerName:
+          customerNames.get(String(r.customerId)) || "Jind customer",
         rating: Number(r.rating),
         comment: r.comment,
         ownerReply: r.ownerReply || "",
         created: r.created,
       }))
       .sort((a, b) => new Date(b.created) - new Date(a.created));
+  }
+  static myReview(d, customer) {
+    const businessId = clean_(d.businessId, 40);
+    if (!DiscoveryService.approvedBusiness_(businessId))
+      throw new AppError("This business is not available for review.");
+    const matches = new ReviewRepo()
+      .all()
+      .filter(
+        (review) =>
+          String(review.customerId) === String(customer.id) &&
+          String(review.businessId) === businessId,
+      );
+    if (!matches.length) return null;
+    const review = matches[matches.length - 1];
+    return {
+      id: review.id,
+      rating: Number(review.rating),
+      comment: review.comment,
+      status: review.status,
+      created: review.created,
+    };
   }
   static reviewSave(d, customer) {
     const businessId = clean_(d.businessId, 40),
@@ -629,15 +657,20 @@ class DiscoveryService {
     const repo = new ReviewRepo();
     const existing = repo
       .all()
-      .find(
+      .filter(
         (r) =>
           String(r.customerId) === String(customer.id) &&
           String(r.businessId) === businessId,
       );
     const data = { rating, comment, ownerReply: "", status: "pending" };
-    if (existing) repo.update(existing.id, data);
-    else repo.insert({ businessId, customerId: customer.id, ...data });
-    return { submitted: true };
+    if (existing.length) {
+      repo.update(existing[existing.length - 1].id, data);
+      existing
+        .slice(0, -1)
+        .reverse()
+        .forEach((duplicate) => repo.remove(duplicate.id));
+    } else repo.insert({ businessId, customerId: customer.id, ...data });
+    return { submitted: true, updated: existing.length > 0 };
   }
   static reviewReply(d) {
     const business = DiscoveryService.merchantBusiness_(d),
@@ -659,12 +692,19 @@ class DiscoveryService {
     const names = new Map(
       new BusinessRepo().all().map((b) => [String(b.id), b.name]),
     );
+    const customerNames = new Map(
+      new CustomerRepo()
+        .all()
+        .map((customer) => [String(customer.id), customer.name]),
+    );
     return new ReviewRepo()
       .all()
       .map((r) => ({
         id: r.id,
         businessId: r.businessId,
         businessName: names.get(String(r.businessId)) || "Removed business",
+        customerName:
+          customerNames.get(String(r.customerId)) || "Jind customer",
         rating: Number(r.rating),
         comment: r.comment,
         status: r.status,

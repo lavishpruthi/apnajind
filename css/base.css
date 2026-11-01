@@ -229,42 +229,36 @@ h2 {
     box-shadow: none;
 }
 
-.loader-wordmark { display: block; width: min(86vw, 440px); height: auto; overflow: visible; }
-.loader-wordmark-ghost,
-.loader-wordmark-ink {
-    font-family: "Dancing Script", "Segoe Script", "Brush Script MT", cursive;
-    font-size: 76px;
-    font-weight: 700;
-    letter-spacing: -2px;
+.loader-hindi { position: relative; display: grid; justify-items: center; width: min(86vw, 420px); padding-top: 44px; color: #183b35; }
+.loader-typing { display: flex; align-items: baseline; gap: .13em; font-family: Hind, system-ui, sans-serif; font-size: clamp(48px, 12vw, 76px); font-weight: 700; line-height: 1.2; animation: loader-heart-pulse 1.08s ease-in-out infinite; }
+.loader-word, .loader-exclamation { opacity: 0; animation: loader-type-in 2.4s infinite; }
+.loader-delay-1 { animation-delay: .16s; }
+.loader-delay-2 { animation-delay: .32s; }
+.loader-delay-3 { animation-delay: .48s; }
+.loader-delay-4 { animation-delay: .64s; }
+.loader-exclamation { color: #bd8125; }
+.loader-heartbeat { position: absolute; top: 0; width: 144px; height: 42px; overflow: visible; }
+.loader-heartbeat path { fill: none; stroke: #bd8125; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 240; stroke-dashoffset: 240; animation: loader-ecg 1.08s ease-in-out infinite; }
+.loader-copy { margin-top: -4px; color: var(--mut); font-size: 14px; letter-spacing: .02em; }
+@keyframes loader-type-in {
+    0%, 8% { opacity: 0; transform: translateY(5px); }
+    14%, 76% { opacity: 1; transform: translateY(0); }
+    84%, 100% { opacity: 0; transform: translateY(-2px); }
 }
-.loader-wordmark-ghost { fill: #d3ddd2; }
-.loader-wordmark-ink { fill: url(#loader-ink); clip-path: url(#loader-write-clip); }
-.loader-write-mask { animation: write-word 5.2s cubic-bezier(.42, 0, .2, 1) infinite; }
-.loader-flourish {
-    fill: none;
-    stroke: #d19a3d;
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-dasharray: 340;
-    stroke-dashoffset: 340;
-    animation: write-flourish 5.2s ease-in-out infinite;
+@keyframes loader-heart-pulse {
+    0%, 11%, 22%, 100% { transform: scale(1); }
+    6%, 17% { transform: scale(1.07); }
 }
-.loader-copy { margin-top: -4px; color: var(--mut); font-size: 14px; letter-spacing: .04em; }
-@keyframes write-word {
-    0%, 5% { width: 0; opacity: 1; }
-    72%, 86% { width: 440px; opacity: 1; }
-    89% { width: 440px; opacity: 0; }
-    90%, 100% { width: 0; opacity: 0; }
-}
-@keyframes write-flourish {
-    0%, 58% { stroke-dashoffset: 340; opacity: .3; }
-    80%, 86% { stroke-dashoffset: 0; opacity: .85; }
-    90%, 100% { stroke-dashoffset: 0; opacity: 0; }
+@keyframes loader-ecg {
+    0%, 6% { stroke-dashoffset: 240; opacity: .25; }
+    18%, 58% { stroke-dashoffset: 0; opacity: 1; }
+    80%, 100% { stroke-dashoffset: -240; opacity: .35; }
 }
 
 @media(prefers-reduced-motion:reduce) {
-    .loader-write-mask { width: 440px !important; opacity: 1 !important; animation: none !important; }
-    .loader-flourish { stroke-dashoffset: 0; opacity: .85; animation: none !important; }
+    .loader-word, .loader-exclamation { opacity: 1; animation: none !important; }
+    .loader-typing { animation: none !important; }
+    .loader-heartbeat path { stroke-dashoffset: 0; animation: none !important; }
 
     * {
         transition: none !important;

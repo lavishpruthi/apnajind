@@ -1,4 +1,4 @@
-const CACHE = "apnajind-shell-v40";
+const CACHE = "apnajind-shell-v43";
 const SHELL = [
   "./",
   "./index.html",

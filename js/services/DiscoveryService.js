@@ -11,6 +11,7 @@ export class DiscoveryService {
   static posts(businessId = "") { return Api.request("posts", businessId ? { businessId } : {}, "GET", { silent: true }); }
   static events() { return Api.request("events", {}, "GET", { silent: true }); }
   static reviews(businessId) { return Api.request("reviews", { businessId }, "GET", { silent: true }); }
+  static myReview(businessId) { return Api.request("customerMyReview", { ...customerToken(), businessId }); }
   static merchantContent() { return Api.request("merchantContent", { token: merchantToken() }); }
   static saveOffer(data) { return Api.request("offerSave", { ...data, token: merchantToken() }); }
   static deleteOffer(offerId) { return Api.request("offerDelete", { offerId, token: merchantToken() }); }

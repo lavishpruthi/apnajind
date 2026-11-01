@@ -74,6 +74,10 @@ export class Router {
       view.host = this.host;
       this.currentView = view;
       this.host.focus({ preventScroll: true });
+      if (path.startsWith("b/")) {
+        window.scrollTo(0, 0);
+        requestAnimationFrame(() => window.scrollTo(0, 0));
+      }
     } catch (error) {
       if (navigationId !== this.navigationId) return;
       const offlineMessage = navigator.onLine ? "Check your connection and try again." : "You’re offline. Reconnect to refresh this page.";

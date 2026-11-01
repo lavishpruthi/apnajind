@@ -22,11 +22,12 @@ export class DetailView extends BaseView {
   async render() {
     await CodeService.load();
     const business = await BusinessService.get(this.id);
-    const [offers, posts, reviews, follows] = await Promise.all([
+    const [offers, posts, reviews, follows, myReview] = await Promise.all([
       DiscoveryService.offers(business.id).catch(() => []),
       DiscoveryService.posts(business.id).catch(() => []),
       DiscoveryService.reviews(business.id).catch(() => []),
       DiscoveryService.follows().catch(() => []),
+      CustomerService.loggedIn ? DiscoveryService.myReview(business.id).catch(() => null) : Promise.resolve(null),
     ]);
     const following = follows.some((item) => String(item.id) === String(business.id));
     RecentService.add(business.id);
@@ -48,7 +49,10 @@ export class DetailView extends BaseView {
         : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${business.name} ${business.address} ${business.area || ""} Jind Haryana`)}`;
     const offersMarkup = offers.length ? `<section class="box detail-panel detail-deals"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("tag")}</span><div><p class="section-kicker">A LITTLE SOMETHING EXTRA</p><h2>Current offers</h2></div></div><div class="detail-offer-list">${offers.map((offer) => `<article class="detail-offer"><div><span class="deal-shop">LOCAL OFFER</span><h3>${esc(offer.title)}</h3><p>${esc(offer.description)}</p>${offer.promoCode ? `<button type="button" class="deal-code" data-copy-offer="${esc(offer.promoCode)}"><span>SHOW THIS CODE</span><strong>${esc(offer.promoCode)}</strong><small>Tap to copy</small></button>` : ""}</div><small class="meta">Until ${esc(this.formatDate(offer.endsAt))}</small></article>`).join("")}</div></section>` : "";
     const postsMarkup = posts.length ? `<section class="box detail-panel detail-posts"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("store")}</span><div><p class="section-kicker">FROM THE BUSINESS</p><h2>Latest updates</h2></div></div>${posts.slice(0, 5).map((post) => `<article class="detail-post"><p>${esc(post.message)}</p><small>${esc(this.formatDate(post.created))}</small></article>`).join("")}</section>` : "";
-    const reviewsMarkup = `<section class="box detail-panel detail-reviews"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("heart")}</span><div><p class="section-kicker">LOCAL EXPERIENCES</p><h2>Customer reviews${reviews.length ? ` <span class="review-average">${(reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length).toFixed(1)} ★ · ${reviews.length}</span>` : ""}</h2></div></div>${reviews.length ? reviews.map((review) => `<article class="customer-review"><div class="review-stars" aria-label="${review.rating} out of 5 stars">${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}</div><p>${esc(review.comment)}</p>${review.ownerReply ? `<div class="owner-reply"><strong>Reply from ${esc(business.name)}</strong><p>${esc(review.ownerReply)}</p></div>` : ""}<small>${esc(this.formatDate(review.created))}</small></article>`).join("") : '<p class="meta">No reviews yet. Share a helpful local experience.</p>'}<form id="customer-review-form" class="customer-review-form"><h3>Leave a review</h3><label for="review-rating">Your rating</label><select id="review-rating" required><option value="">Choose stars</option><option value="5">★★★★★ — Loved it</option><option value="4">★★★★ — Great</option><option value="3">★★★ — Good</option><option value="2">★★ — Could be better</option><option value="1">★ — Needs work</option></select><label for="review-comment">Your experience</label><textarea id="review-comment" rows="3" maxlength="600" minlength="10" placeholder="What should other Jind customers know?" required></textarea><button class="btn ghost" type="submit">Submit for review</button><p class="meta">Reviews appear after a quick community review.</p></form></section>`;
+    const selectedRating = Number(myReview?.rating || 0);
+    const ratingStars = `<div class="review-star-picker" role="radiogroup" aria-label="Choose a rating from one to five stars">${[1, 2, 3, 4, 5].map((rating) => `<button type="button" role="radio" class="review-star-button ${rating <= selectedRating ? "selected" : ""}" data-review-star="${rating}" aria-label="${rating} ${rating === 1 ? "star" : "stars"}" aria-checked="${rating === selectedRating}" tabindex="${rating === (selectedRating || 1) ? "0" : "-1"}">${rating <= selectedRating ? "★" : "☆"}</button>`).join("")}</div>`;
+    const reviewState = myReview?.status === "pending" ? '<p class="review-status-note">Your review is waiting for moderation. You can edit it below.</p>' : myReview?.status === "rejected" ? '<p class="review-status-note">Your previous review was not approved. You can edit and resubmit it below.</p>' : "";
+    const reviewsMarkup = `<section class="box detail-panel detail-reviews"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("heart")}</span><div><p class="section-kicker">LOCAL EXPERIENCES</p><h2>Customer reviews${reviews.length ? ` <span class="review-average">${(reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length).toFixed(1)} ★ · ${reviews.length}</span>` : ""}</h2></div></div>${reviews.length ? reviews.map((review) => `<article class="customer-review"><div class="review-card-heading"><strong class="review-customer-name">${esc(review.customerName || "Jind customer")}</strong><div class="review-stars" aria-label="${review.rating} out of 5 stars">${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}</div></div><p>${esc(review.comment)}</p>${review.ownerReply ? `<div class="owner-reply"><strong>Reply from ${esc(business.name)}</strong><p>${esc(review.ownerReply)}</p></div>` : ""}<small>${esc(this.formatDate(review.created))}</small></article>`).join("") : '<p class="meta">No reviews yet. Share a helpful local experience.</p>'}<form id="customer-review-form" class="customer-review-form"><h3>${myReview ? "Edit your review" : "Leave a review"}</h3>${reviewState}<label>Your rating</label>${ratingStars}<input id="review-rating" type="hidden" value="${selectedRating || ""}"><label for="review-comment">Your experience</label><textarea id="review-comment" rows="3" maxlength="600" minlength="10" placeholder="What should other Jind customers know?" required>${esc(myReview?.comment || "")}</textarea><button class="btn ghost" type="submit">${myReview ? "Update review" : "Submit for review"}</button><p class="meta">Reviews appear after a quick community review.</p></form></section>`;
     this.html = `<div class="business-detail-page"><div class="detail-toolbar"><a class="btn ghost detail-back" href="${esc(this.returnHash || "#/")}">${icon("arrow-left")}<span>${Locale.t("back")}</span></a><div class="detail-tools"><button class="btn ghost detail-follow ${following ? "is-following" : ""}" type="button" data-act="follow" aria-pressed="${following}">${icon(following ? "check" : "plus")}<span>${following ? "Following" : "Follow"}</span></button><button class="icon-btn detail-save ${saved ? "is-saved" : ""}" type="button" data-act="save" aria-label="${saved ? "Remove" : "Save"} ${esc(business.name)} ${saved ? "from" : "to"} saved businesses" aria-pressed="${saved}" title="${saved ? "Remove saved listing" : "Save listing"}">${icon("heart")}</button><button class="icon-btn detail-share" type="button" data-act="share" aria-label="Share ${esc(business.name)}" title="Share listing">${icon("share")}</button></div></div>
       <section class="detail-gallery-shell" aria-label="Business photos">
         <div class="gallery" id="business-gallery" role="region" aria-label="Photos of ${esc(business.name)}" tabindex="0">${pictures}</div>
@@ -114,6 +118,14 @@ export class DetailView extends BaseView {
     });
     this.on("#listing-report", "submit", (event) => this.submitReport(event, business.id));
     this.on("#customer-review-form", "submit", (event) => this.submitReview(event, business.id));
+    this.host.querySelectorAll("[data-review-star]").forEach((button) => {
+      button.addEventListener("click", () => this.selectReviewRating(Number(button.dataset.reviewStar)));
+      button.addEventListener("keydown", (event) => {
+        const value = Number(button.dataset.reviewStar);
+        const next = event.key === "ArrowRight" || event.key === "ArrowUp" ? Math.min(5, value + 1) : event.key === "ArrowLeft" || event.key === "ArrowDown" ? Math.max(1, value - 1) : 0;
+        if (next) { event.preventDefault(); this.selectReviewRating(next); this.$(`[data-review-star="${next}"]`).focus(); }
+      });
+    });
     this.host.querySelectorAll("[data-copy-offer]").forEach((button) => button.addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(button.dataset.copyOffer); Toast.show("Offer code copied."); }
       catch { Toast.show(`Use offer code ${button.dataset.copyOffer} at the business.`); }
@@ -145,13 +157,29 @@ export class DetailView extends BaseView {
   async submitReview(event, businessId) {
     event.preventDefault();
     const form = event.currentTarget, button = form.querySelector('[type="submit"]');
+    const rating = Number(this.$("#review-rating").value);
+    if (!rating) { Toast.show("Tap a star to choose your rating."); return; }
     button.disabled = true;
     try {
-      await DiscoveryService.submitReview({ businessId, rating: Number(this.$("#review-rating").value), comment: this.$("#review-comment").value.trim() });
-      Toast.show("Thanks. Your review was sent for moderation.");
-      form.reset();
+      const result = await DiscoveryService.submitReview({ businessId, rating, comment: this.$("#review-comment").value.trim() });
+      Toast.show(result.updated ? "Your review was updated and sent for moderation." : "Thanks. Your review was sent for moderation.");
+      await this.render();
     } catch (error) { Toast.show(error.message); }
     finally { button.disabled = false; }
+  }
+
+  selectReviewRating(value) {
+    const input = this.$("#review-rating");
+    if (!input || value < 1 || value > 5) return;
+    input.value = String(value);
+    this.host.querySelectorAll("[data-review-star]").forEach((star) => {
+      const rating = Number(star.dataset.reviewStar);
+      const selected = rating === value;
+      star.textContent = rating <= value ? "★" : "☆";
+      star.classList.toggle("selected", rating <= value);
+      star.setAttribute("aria-checked", String(selected));
+      star.tabIndex = selected ? 0 : -1;
+    });
   }
 
   setupGallery(count) {

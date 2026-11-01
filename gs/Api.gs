@@ -22,6 +22,10 @@ const ROUTES = {
     auth: "customer",
     fn: (d, c) => DiscoveryService.reviewSave(d, c),
   },
+  customerMyReview: {
+    auth: "customer",
+    fn: (d, c) => DiscoveryService.myReview(d, c),
+  },
   customerFollow: {
     auth: "customer",
     fn: (d, c) => DiscoveryService.toggleFollow(d, c),
