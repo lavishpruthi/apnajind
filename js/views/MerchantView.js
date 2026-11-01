@@ -1,0 +1,525 @@
+import { BaseView } from "./BaseView.js";
+import { esc, safeImageSrc } from "../core/Dom.js";
+import { icon } from "../core/Icons.js";
+import { Toast } from "../core/Toast.js";
+import { CodeService } from "../services/CodeService.js";
+import { BusinessService } from "../services/BusinessService.js";
+import { AuthService } from "../services/AuthService.js";
+import { CustomerService } from "../services/CustomerService.js";
+import { scheduleFields, readSchedule, formatHours } from "../core/Hours.js";
+import { LocationService } from "../services/LocationService.js";
+import { PinService } from "../services/PinService.js";
+
+const MERCHANT_TOKEN = "apnajind_merchant_token";
+const ISSUED_PIN = "apnajind_merchant_issued_pin";
+
+export class MerchantView extends BaseView {
+  static nav = "merchant";
+  constructor(host, mode) {
+    super(host);
+    this.mode = mode || "";
+    this.photos = [];
+    this.photoPending = 0;
+  }
+
+  async render() {
+    if (this.mode === "new") {
+      await CodeService.load();
+      return this.registration();
+    }
+    if (sessionStorage.getItem(MERCHANT_TOKEN)) return this.profile();
+    return this.login();
+  }
+
+  login() {
+    this.html = `<div class="merchant-auth-top"><a class="btn ghost auth-back" href="#/auth">${icon("arrow-left")} Back to sign in &amp; register</a></div><h1>Merchant sign in</h1><p class="intro">Manage your business listing on ApnaJind.</p>
+      <div class="box"><form id="merchant-login">
+        <label for="merchant-phone">Mobile number</label><input id="merchant-phone" inputmode="numeric" autocomplete="tel" maxlength="10" required>
+        <label for="merchant-pin">PIN</label><input id="merchant-pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="6" required>
+        <div class="btns"><button class="btn" type="submit">Log in</button><a class="btn ac" href="#/merchant/new">Register a business</a></div>
+      </form></div>`;
+    this.on("#merchant-login", "submit", async (event) => {
+      event.preventDefault();
+      const button = this.$('button[type="submit"]');
+      button.disabled = true;
+      try {
+        const result = await BusinessService.login(
+          this.$("#merchant-phone").value.trim(),
+          this.$("#merchant-pin").value.trim(),
+        );
+        AuthService.logout();
+        CustomerService.logout(false);
+        sessionStorage.setItem(MERCHANT_TOKEN, result.token);
+        window.dispatchEvent(new Event("apnajind:authchange"));
+        location.hash = "#/merchant";
+      } catch (error) {
+        Toast.show(error.message);
+        button.disabled = false;
+      }
+    });
+  }
+
+  async registration() {
+    this.photos = [];
+    this.renderForm(null, true);
+  }
+
+  async profile() {
+    try {
+      await CodeService.load();
+      const business = await BusinessService.mine(
+        sessionStorage.getItem(MERCHANT_TOKEN),
+      );
+      let issued = null;
+      try { issued = JSON.parse(sessionStorage.getItem(ISSUED_PIN) || "null"); } catch { /* Ignore invalid one-time display data. */ }
+      if (business.pinChangeRequired) {
+        this.renderPinChange(business, issued, true);
+        return;
+      }
+      sessionStorage.removeItem(ISSUED_PIN);
+      this.photos = [...(business.photos || [])];
+      this.renderForm(business, false);
+    } catch (error) {
+      sessionStorage.removeItem(MERCHANT_TOKEN);
+      window.dispatchEvent(new Event("apnajind:authchange"));
+      Toast.show(error.message);
+      this.login();
+    }
+  }
+
+  renderPinChange(business, issued, mandatory) {
+    const expiresAt = issued?.expiresAt || business.pinExpiresAt;
+    const whatsapp = issued
+      ? PinService.whatsappUrl(issued.whatsapp || issued.phone, issued.pin, issued.businessName || business.name, expiresAt)
+      : "";
+    this.html = `<section class="merchant-pin-page"><div class="merchant-auth-top"><span class="st ${mandatory ? "pending" : "approved"}">${mandatory ? "One-time setup required" : "Account security"}</span></div><p class="hero-kicker">${mandatory ? "SECURE YOUR MERCHANT ACCOUNT" : "UPDATE YOUR SIGN-IN"}</p><h1>${mandatory ? "Set your personal PIN" : "Change your PIN"}</h1><p class="intro">${mandatory ? "Your temporary PIN is valid for 24 hours. Choose a personal 6-digit PIN before continuing to your dashboard." : "Enter your current PIN, then choose and confirm a new 6-digit PIN."}</p>${issued ? `<section class="temporary-pin-card"><div><span class="auth-eyebrow">Your temporary PIN</span><strong class="temporary-pin-value" aria-label="Temporary PIN ${esc(issued.pin)}">${esc(issued.pin)}</strong><p class="meta">Valid until ${esc(PinService.expiryLabel(expiresAt))}</p></div>${whatsapp ? `<a class="btn ok" href="${esc(whatsapp)}" target="_blank" rel="noopener noreferrer">${icon("phone")} Send to my WhatsApp</a>` : ""}</section>` : mandatory ? `<section class="network-notice" role="status">Enter the temporary PIN given to you by the administrator. It expires 24 hours after it was generated.</section>` : ""}<section class="box merchant-pin-form-card"><form id="merchant-pin-change"><label for="merchant-old-pin">${mandatory ? "Temporary PIN" : "Current PIN"}</label><input id="merchant-old-pin" name="oldPin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" autocomplete="current-password" required><label for="merchant-new-pin">New 6-digit PIN</label><input id="merchant-new-pin" name="newPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password" required><label for="merchant-confirm-pin">Confirm new PIN</label><input id="merchant-confirm-pin" name="confirmPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password" required><div class="btns"><button class="btn ac" type="submit">${mandatory ? "Set PIN & continue" : "Update PIN"}</button>${mandatory ? "" : '<button class="btn ghost" id="cancel-pin-change" type="button">Cancel</button>'}</div><p class="form-error" id="pin-change-error" role="alert"></p></form></section></section>`;
+    this.on("#merchant-pin-change", "submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      const errorMessage = this.$("#pin-change-error");
+      if (form.elements.newPin.value !== form.elements.confirmPin.value) {
+        errorMessage.textContent = "The new PIN entries do not match.";
+        return;
+      }
+      button.disabled = true;
+      errorMessage.textContent = "";
+      try {
+        const result = await PinService.change(sessionStorage.getItem(MERCHANT_TOKEN), form.elements.oldPin.value, form.elements.newPin.value, form.elements.confirmPin.value);
+        sessionStorage.setItem(MERCHANT_TOKEN, result.token);
+        sessionStorage.removeItem(ISSUED_PIN);
+        Toast.show("Your merchant PIN was updated.");
+        await this.profile();
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+    if (!mandatory) this.on("#cancel-pin-change", "click", () => this.profile());
+  }
+
+  renderForm(business, isNew) {
+    const categories = CodeService.list("CATEGORY");
+    const areas = CodeService.list("AREA");
+    const value = business || {};
+    const options = (records, selected, emptyLabel) =>
+      `<option value="">${emptyLabel}</option>${records
+        .map(
+          (record) => `
+      <option value="${esc(record.code)}" ${record.code === selected ? "selected" : ""}>${esc(record.description)}</option>`,
+        )
+        .join("")}`;
+    this.html = `${isNew ? `<div class="merchant-auth-top"><a class="btn ghost auth-back" href="#/auth">${icon("arrow-left")} Back to sign in &amp; register</a></div>` : ""}<header class="merchant-heading"><p class="hero-kicker">${isNew ? "Join your local directory" : "Merchant dashboard"}</p><h1>${isNew ? "List your business" : esc(value.name)}</h1>
+      ${isNew ? '<p class="intro">Create a useful listing for people looking for local businesses in Jind.</p>' : `<p><span class="st ${esc(value.status)}">${esc(this.statusLabel(value.status))}</span></p>`}</header>
+      <div class="box merchant-form-card"><form id="business-form" novalidate>
+        <div class="listing-progress"><div><strong>Listing completeness</strong><span id="completeness-label"></span></div><div class="progress-track" role="progressbar" aria-label="Listing completeness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="completeness-bar"></span></div></div>
+        <div class="merchant-tabs" role="tablist" aria-label="Business details">
+          <button class="merchant-tab active" type="button" role="tab" id="tab-business" aria-selected="true" aria-controls="panel-business" data-tab="business">Business details</button>
+          <button class="merchant-tab" type="button" role="tab" id="tab-location" aria-selected="false" aria-controls="panel-location" data-tab="location">Location & contact</button>
+          <button class="merchant-tab" type="button" role="tab" id="tab-attachments" aria-selected="false" aria-controls="panel-attachments" data-tab="attachments">Attachments <span class="tab-count">${this.photos.length}/10</span></button>
+        </div>
+        <section class="merchant-panel" role="tabpanel" id="panel-business" aria-labelledby="tab-business" data-panel="business">
+          <p class="panel-intro">Tell customers what makes your business useful to them.</p>
+          <label for="business-name">Business name</label><input id="business-name" maxlength="80" required value="${esc(value.name)}" placeholder="e.g. Sharma Sweets">
+          <label for="business-category">Category</label><select id="business-category" required>${options(categories, value.category, "Choose category")}</select>
+          <label for="business-description">About your business</label><textarea id="business-description" rows="4" maxlength="600" placeholder="A short introduction customers will see on your listing">${esc(value.description)}</textarea>
+          <label for="business-services">Services <span class="label-hint">Separate with commas</span></label><input id="business-services" maxlength="300" placeholder="Home delivery, catering" value="${esc((value.services || []).join(", "))}">
+          <div class="hours-heading"><div><h2>Weekly opening hours</h2><p class="meta">Set each day’s hours so customers can check if you’re open.</p></div><button class="btn ghost" type="button" id="copy-monday-hours">Copy Monday to all</button></div>
+          ${typeof value.hours === "string" && value.hours && !value.hours.trim().startsWith("{") ? `<p class="network-notice" role="status">Your existing hours are in an older format. Set your weekly schedule below to update them.</p>` : ""}
+          <div class="hours-editor" id="hours-editor">${scheduleFields(value.hours)}</div>
+          <div class="row merchant-info-row"><div><label for="business-availability">Availability</label><select id="business-availability"><option value="available" ${value.availability === "available" || !value.availability ? "selected" : ""}>Open for customers</option><option value="seasonal" ${value.availability === "seasonal" ? "selected" : ""}>Seasonal</option><option value="temporarily_closed" ${value.availability === "temporarily_closed" ? "selected" : ""}>Temporarily closed</option></select></div></div>
+        </section>
+        <section class="merchant-panel" role="tabpanel" id="panel-location" aria-labelledby="tab-location" data-panel="location" hidden>
+          <p class="panel-intro">Help customers find and contact your business.</p>
+          <label for="business-address">Shop address</label><input id="business-address" maxlength="200" autocomplete="street-address" value="${esc(value.address)}" placeholder="Street, building or nearby landmark">
+          <div class="row merchant-location-row">
+            <div><label for="business-area">Area / mohalla</label><select id="business-area">${options(areas, value.area, "Select area")}</select></div>
+            <div class="location-control"><label>&nbsp;</label><button class="btn ghost" type="button" id="use-location">⌖ Use my location</button></div>
+          </div>
+          <div class="place-search"><label for="place-query">Or search for a place</label><input id="place-query" list="place-suggestions" maxlength="120" placeholder="Start typing a landmark or area" autocomplete="off" aria-describedby="location-search-status"><datalist id="place-suggestions">${areas.map((area) => `<option value="${esc(area.description)}"></option>`).join("")}</datalist><p class="location-note" id="location-search-status" role="status" aria-live="polite">Suggestions use Jind areas. Choose a suggestion or enter a place, then leave this field to look it up.</p><p class="location-note">Your place name is sent to OpenStreetMap for lookup. Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</p></div>
+          <p class="location-note">Use your device location or search a place to fill the address and coordinates. Review the details before saving.</p>
+          <div class="row coordinate-row">
+            <div><label for="business-lat">Latitude</label><input id="business-lat" inputmode="decimal" value="${esc(value.lat)}" placeholder="Filled from location"></div>
+            <div><label for="business-lng">Longitude</label><input id="business-lng" inputmode="decimal" value="${esc(value.lng)}" placeholder="Filled from location"></div>
+          </div>
+          <div class="row">
+            <div><label for="business-phone">Mobile number</label><input id="business-phone" inputmode="numeric" maxlength="10" autocomplete="tel" required value="${esc(value.phone)}" ${isNew ? "" : "readonly"}></div>
+            <div class="whatsapp-field"><label for="business-whatsapp">WhatsApp <span class="label-hint">Optional</span></label><input id="business-whatsapp" inputmode="numeric" maxlength="10" value="${esc(value.whatsapp)}"><label class="same-phone-option"><input id="whatsapp-same-phone" type="checkbox" ${value.phone && value.whatsapp === value.phone ? "checked" : ""}> Same as mobile number</label></div>
+          </div>
+          <label for="business-owner">Owner name <span class="label-hint">Optional</span></label><input id="business-owner" maxlength="60" autocomplete="name" value="${esc(value.owner)}">
+        </section>
+        <section class="merchant-panel" role="tabpanel" id="panel-attachments" aria-labelledby="tab-attachments" data-panel="attachments" hidden>
+          <p class="panel-intro">Add clear photos of your storefront, products or services. Add up to 10 photos.</p>
+          <label class="upload-drop ${this.photos.length >= 10 ? "at-limit" : ""}" for="business-photos" aria-disabled="${this.photos.length >= 10}"><span class="upload-icon" aria-hidden="true">${this.photos.length >= 10 ? "✓" : "＋"}</span><strong>${this.photos.length >= 10 ? "Photo limit reached" : "Add photos"}</strong><span>Choose image files from your device</span><small aria-live="polite">JPEG, PNG, WebP or AVIF · ${this.photos.length} of 10 added</small><input id="business-photos" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple aria-describedby="photo-help" ${this.photos.length >= 10 ? "disabled" : ""}></label>
+          <span id="photo-help" class="sr">You can add up to 10 photos. Remove a photo to replace it.</span>
+          <div class="photo-list merchant-photo-list" id="photo-list">${this.photoMarkup()}</div>
+        </section>
+        <div class="merchant-form-footer"><span class="meta">${isNew ? "Your listing is reviewed before it goes live." : "Changes may require admin approval."}</span><div class="btns"><button class="btn ghost" id="preview-business" type="button">Preview listing</button><button class="btn ac" id="save-business" type="submit">${isNew ? "Register business" : "Save changes"}</button>
+          ${isNew ? '<a class="btn ghost" href="#/merchant">Already registered? Log in</a>' : ""}
+        </div></div>
+      </form></div>${!isNew ? `<section class="box merchant-security-card"><div><p class="auth-eyebrow">Account security</p><h2>Merchant sign-in PIN</h2><p class="meta">Change your PIN whenever you need to. Your current PIN is required.</p></div><button class="btn ghost" id="change-merchant-pin" type="button">${icon("key")} Change PIN</button></section>` : ""}<dialog class="listing-preview" id="listing-preview" aria-label="Business listing preview"></dialog>`;
+
+    this.updateCompleteness();
+    this.on("#business-form", "input", () => this.updateCompleteness());
+    this.on("#business-form", "change", () => this.updateCompleteness());
+    this.on("#hours-editor", "change", (event) => {
+      if (!event.target.matches('input[type="checkbox"][name$="-closed"]')) return;
+      const fieldset = event.target.closest("fieldset");
+      fieldset.querySelectorAll('input[type="time"]').forEach((input) => { input.disabled = event.target.checked; });
+    });
+    this.on("#copy-monday-hours", "click", () => {
+      const mondayClosed = this.$('[name="hours-mon-closed"]');
+      ["tue", "wed", "thu", "fri", "sat", "sun"].forEach((day) => {
+        const closed = this.$(`[name="hours-${day}-closed"]`);
+        const open = this.$(`[name="hours-${day}-open"]`);
+        const close = this.$(`[name="hours-${day}-close"]`);
+        closed.checked = mondayClosed.checked; open.value = this.$('[name="hours-mon-open"]').value; close.value = this.$('[name="hours-mon-close"]').value;
+        open.disabled = close.disabled = mondayClosed.checked;
+      });
+      Toast.show("Monday’s hours copied to the other days.");
+    });
+    this.on("#preview-business", "click", () => this.previewListing());
+    if (!isNew) this.on("#change-merchant-pin", "click", () => this.renderPinChange(value, null, false));
+
+    this.host.querySelectorAll("[data-tab]").forEach((tab) => {
+      tab.tabIndex = tab.classList.contains("active") ? 0 : -1;
+      tab.addEventListener("click", () => this.selectTab(tab.dataset.tab));
+      tab.addEventListener("keydown", (event) => {
+        const tabs = [...this.host.querySelectorAll("[data-tab]")];
+        const index = tabs.indexOf(tab);
+        const next = event.key === "ArrowRight" ? (index + 1) % tabs.length
+          : event.key === "ArrowLeft" ? (index - 1 + tabs.length) % tabs.length
+            : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : -1;
+        if (next >= 0) {
+          event.preventDefault();
+          this.selectTab(tabs[next].dataset.tab);
+          tabs[next].focus();
+        }
+      });
+    });
+    this.on("#business-photos", "change", (event) => this.handlePhotos(event));
+    this.on("#photo-list", "click", (event) => {
+      const removeButton = event.target.closest("[data-remove-photo]");
+      const index = Number(removeButton?.dataset.removePhoto);
+      if (Number.isInteger(index) && index >= 0) {
+        this.photos.splice(index, 1);
+        this.refreshPhotoList();
+      }
+    });
+    const drop = this.$(".upload-drop");
+    ["dragenter", "dragover"].forEach((type) => drop.addEventListener(type, (event) => { event.preventDefault(); drop.classList.add("dragging"); }));
+    ["dragleave", "drop"].forEach((type) => drop.addEventListener(type, (event) => { event.preventDefault(); drop.classList.remove("dragging"); }));
+    drop.addEventListener("drop", (event) => this.handlePhotos({ currentTarget: { files: event.dataTransfer.files, value: "" } }));
+    this.on("#use-location", "click", () => this.setLocation());
+    this.on("#place-query", "change", () => this.searchLocation());
+    this.on("#place-query", "keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); this.searchLocation(); } });
+    this.on("#whatsapp-same-phone", "change", (event) => {
+      const whatsapp = this.$("#business-whatsapp");
+      whatsapp.disabled = event.currentTarget.checked;
+      if (event.currentTarget.checked) whatsapp.value = this.$("#business-phone").value;
+    });
+    this.on("#business-phone", "input", () => {
+      if (this.$("#whatsapp-same-phone").checked) this.$("#business-whatsapp").value = this.$("#business-phone").value;
+    });
+    if (value.phone && value.whatsapp === value.phone) this.$("#business-whatsapp").disabled = true;
+    this.on("#business-form", "submit", (event) =>
+      this.submitForm(event, isNew),
+    );
+  }
+
+  statusLabel(status) {
+    return (
+      {
+        pending: "Waiting for approval",
+        approved: "Live on ApnaJind",
+        rejected: "Not approved",
+      }[status] || status
+    );
+  }
+
+  updateCompleteness() {
+    const fields = ["name", "category", "description", "address", "area", "phone"];
+    const complete = fields.reduce((sum, field) => sum + (this.$(`#business-${field}`)?.value.trim() ? 1 : 0), 0) + (this.photos.length ? 1 : 0);
+    const percent = Math.round((complete / (fields.length + 1)) * 100);
+    const label = this.$("#completeness-label");
+    const bar = this.$("#completeness-bar");
+    if (label) label.textContent = `${percent}% complete`;
+    if (bar) {
+      bar.style.width = `${percent}%`;
+      bar.parentElement.setAttribute("aria-valuenow", String(percent));
+    }
+  }
+
+  previewListing() {
+    const value = (field) => this.$(`#business-${field}`)?.value.trim() || "";
+    const categorySelect = this.$("#business-category");
+    const areaSelect = this.$("#business-area");
+    const category = categorySelect?.selectedOptions[0]?.textContent || "Business";
+    const area = areaSelect?.selectedOptions[0]?.textContent || "Jind";
+    const services = value("services").split(",").map((item) => item.trim()).filter(Boolean);
+    const photo = safeImageSrc(this.photos[0]);
+    const dialog = this.$("#listing-preview");
+    let previewHours = "";
+    try { previewHours = formatHours(readSchedule(this.$("#business-form"))); } catch { /* Incomplete schedule can still be previewed. */ }
+    dialog.innerHTML = `<article class="preview-card">${photo ? `<img class="preview-photo" src="${esc(photo)}" alt="Listing photo preview">` : '<div class="preview-photo preview-placeholder">Business photo</div>'}<div class="preview-body"><div class="preview-toolbar"><span class="tag">Preview</span><button class="icon-btn preview-close" type="button" aria-label="Close preview">×</button></div><h2>${esc(value("name") || "Your business name")}</h2><p class="meta">${esc(category)} · ${esc(area)}</p><p class="preview-description">${esc(value("description") || "Your business description will appear here.")}</p><p class="preview-meta"><strong>Hours</strong><br>${esc(previewHours)}</p><p class="preview-meta"><strong>Status</strong> ${esc(this.$("#business-availability")?.selectedOptions[0]?.textContent || "Open for customers")}</p><div>${services.map((service) => `<span class="tag">${esc(service)}</span>`).join("")}</div><p class="preview-meta"><strong>Address</strong> ${esc(value("address") || "Add an address")}${value("area") ? `, ${esc(area)}` : ""}, Jind</p><p class="preview-meta"><strong>Contact</strong> ${esc(value("phone") || "Add a mobile number")}</p></div></article>`;
+    dialog.showModal();
+    this.on(".preview-close", "click", () => dialog.close());
+    dialog.onclick = (event) => { if (event.target === dialog) dialog.close(); };
+  }
+
+  photoMarkup() {
+    return this.photos
+      .map(
+        (
+          photo,
+          index,
+        ) => `<button class="photo-remove" type="button" data-remove-photo="${index}" aria-label="Remove photo ${index + 1}">
+      <img src="${esc(safeImageSrc(photo))}" alt="Photo ${index + 1}" referrerpolicy="no-referrer"><span aria-hidden="true">×</span>
+    </button>`,
+      )
+      .join("");
+  }
+
+  selectTab(name) {
+    this.host.querySelectorAll("[data-tab]").forEach((tab) => {
+      const selected = tab.dataset.tab === name;
+      tab.classList.toggle("active", selected);
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    this.host.querySelectorAll("[data-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== name;
+    });
+  }
+
+  refreshPhotoList() {
+    this.$("#photo-list").innerHTML = this.photoMarkup();
+    const count = this.photos.length;
+    this.$("#tab-attachments .tab-count").textContent = `${count}/10`;
+    const drop = this.$(".upload-drop");
+    drop.querySelector("strong").textContent = count >= 10 ? "Photo limit reached" : "Add photos";
+    drop.querySelector("small").textContent = `${count} of 10 added`;
+    drop.classList.toggle("at-limit", count >= 10);
+    drop.setAttribute("aria-disabled", String(count >= 10));
+    this.$("#business-photos").disabled = count >= 10;
+    this.updateCompleteness();
+  }
+
+  async handlePhotos(event) {
+    const input = event.currentTarget;
+    for (const file of input.files) {
+      if (this.photos.length + this.photoPending >= 10) {
+        Toast.show("You can add up to 10 photos.");
+        break;
+      }
+      const supportedMime = ["image/jpeg", "image/png", "image/webp", "image/avif"].includes(file.type);
+      const supportedExtension = /\.(?:jpe?g|png|webp|avif)$/i.test(file.name || "");
+      if (!supportedMime && !supportedExtension && file.type) {
+        Toast.show("Choose a JPEG, PNG, WebP or AVIF photo. HEIC photos need to be exported to JPEG first.");
+        continue;
+      }
+      if (file.size > 12 * 1024 * 1024) {
+        Toast.show("Each photo must be smaller than 12 MB.");
+        continue;
+      }
+      this.photoPending += 1;
+      try {
+        this.photos.push(await this.compress(file));
+      } catch (error) {
+        Toast.show(error.message);
+      } finally {
+        this.photoPending -= 1;
+      }
+    }
+    if ("value" in input) input.value = "";
+    this.refreshPhotoList();
+  }
+
+  compress(file) {
+    return new Promise((resolve, reject) => {
+      const fail = () => reject(new Error("This image could not be opened on this device. Export it as JPEG, PNG or WebP and try again."));
+      const draw = (source, width, height, cleanup = () => {}) => {
+        try {
+          if (!width || !height) throw new Error("The image has no readable dimensions.");
+          let scale = Math.min(1, 1200 / Math.max(width, height));
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Photo processing is unavailable in this browser.");
+          let quality = 0.76;
+          let output = "";
+          for (let attempt = 0; attempt < 8; attempt += 1) {
+            canvas.width = Math.max(1, Math.round(width * scale));
+            canvas.height = Math.max(1, Math.round(height * scale));
+            context.drawImage(source, 0, 0, canvas.width, canvas.height);
+            output = canvas.toDataURL("image/jpeg", quality);
+            if (output.length <= 650000) break;
+            if (quality > 0.5) quality -= 0.1;
+            else scale *= 0.82;
+          }
+          if (!output.startsWith("data:image/jpeg;base64,") || output.length < 100) throw new Error("The browser could not convert this image.");
+          if (output.length > 680000) throw new Error("This photo is too detailed to upload. Try a smaller image or crop it first.");
+          resolve(output);
+        } catch (error) { reject(new Error(error.message || "Unable to process this photo. Try a smaller image.")); }
+        finally { cleanup(); }
+      };
+      if ("createImageBitmap" in window) {
+        createImageBitmap(file).then((bitmap) => draw(bitmap, bitmap.width, bitmap.height, () => bitmap.close?.())).catch(() => loadWithImage());
+      } else loadWithImage();
+      function loadWithImage() {
+        const image = new Image();
+        const url = URL.createObjectURL(file);
+        image.onload = () => draw(image, image.naturalWidth, image.naturalHeight, () => URL.revokeObjectURL(url));
+        image.onerror = () => { URL.revokeObjectURL(url); fail(); };
+        image.src = url;
+      }
+    });
+  }
+
+  setLocation() {
+    if (!navigator.geolocation) {
+      Toast.show("Location is not supported on this device.");
+      return;
+    }
+    const button = this.$("#use-location");
+    button.disabled = true;
+    button.textContent = "Getting location…";
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        this.applyLocation({ lat: latitude.toFixed(6), lng: longitude.toFixed(6) }, false);
+        button.textContent = "Finding address…";
+        LocationService.reverse(latitude, longitude).then((result) => {
+          this.applyLocation(result, true);
+          Toast.show("Location found. Review the address and area before saving.");
+        }).catch(() => Toast.show("Coordinates added. Add the address and area manually if they’re missing.")).finally(() => { button.disabled = false; button.textContent = "⌖ Use my location"; });
+      },
+      (error) => {
+        button.disabled = false;
+        button.textContent = "⌖ Use my location";
+        Toast.show(error.code === error.PERMISSION_DENIED ? "Allow location access to use this feature." : "Could not get your location. Try again or enter it manually.");
+      },
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 15000 },
+    );
+  }
+
+  async searchLocation() {
+    const input = this.$("#place-query");
+    const status = this.$("#location-search-status");
+    const query = input.value.trim();
+    if (!query || this.locationSearchPending) return;
+    const matchedArea = CodeService.list("AREA").find((area) => area.description.toLocaleLowerCase() === query.toLocaleLowerCase());
+    if (matchedArea) {
+      this.$("#business-area").value = matchedArea.code;
+      if (!this.$("#business-address").value.trim()) this.$("#business-address").value = `${matchedArea.description}, Jind, Haryana`;
+      this.updateCompleteness();
+    }
+    this.locationSearchPending = true;
+    input.readOnly = true;
+    input.setAttribute("aria-busy", "true");
+    status.textContent = "Looking up this place…";
+    try {
+      const result = await LocationService.search(query);
+      this.applyLocation(result, true);
+      status.textContent = "Place found. Review the address and area before saving.";
+    } catch (error) {
+      status.textContent = matchedArea
+        ? `${matchedArea.description} selected. Precise coordinates could not be fetched; use “Use my location” or enter coordinates manually.`
+        : `${error.message || "Could not find that place."} Try a nearby area suggestion or use “Use my location”.`;
+    } finally { this.locationSearchPending = false; input.readOnly = false; input.removeAttribute("aria-busy"); }
+  }
+
+  applyLocation(result, updateAddress) {
+    this.$("#business-lat").value = result.lat;
+    this.$("#business-lng").value = result.lng;
+    if (updateAddress && result.address) this.$("#business-address").value = result.address;
+    const address = `${result.address || ""} ${Object.values(result.parts || {}).join(" ")}`.toLocaleLowerCase();
+    const area = CodeService.list("AREA").find((item) => address.includes(String(item.description).toLocaleLowerCase()));
+    if (area) this.$("#business-area").value = area.code;
+    this.updateCompleteness();
+  }
+
+  async submitForm(event, isNew) {
+    event.preventDefault();
+    const get = (id) => this.$(`#business-${id}`).value.trim();
+    const phone = get("phone");
+    let hours;
+    try { hours = readSchedule(this.$("#business-form")); }
+    catch (error) { this.selectTab("business"); return Toast.show(error.message); }
+    if (!get("name")) return Toast.show("Enter your business name.");
+    if (!get("category")) {
+      this.selectTab("business");
+      return Toast.show("Choose a business category.");
+    }
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      this.selectTab("location");
+      return Toast.show("Enter a valid 10-digit mobile number.");
+    }
+    const data = {
+      name: get("name"),
+      category: get("category"),
+      description: get("description"),
+      services: get("services"),
+      hours,
+      availability: get("availability"),
+      address: get("address"),
+      area: get("area"),
+      lat: get("lat"),
+      lng: get("lng"),
+      phone,
+      whatsapp: this.$("#whatsapp-same-phone").checked ? phone : get("whatsapp"),
+      owner: get("owner"),
+      photos: this.photos,
+    };
+    const button = this.$("#save-business");
+    button.disabled = true;
+    try {
+      if (isNew) {
+        const result = await BusinessService.register(data);
+        sessionStorage.setItem(ISSUED_PIN, JSON.stringify({
+          pin: result.pin,
+          expiresAt: result.expiresAt,
+          phone: result.phone,
+          whatsapp: result.whatsapp,
+          businessName: result.businessName,
+        }));
+        sessionStorage.setItem(MERCHANT_TOKEN, result.token);
+        window.dispatchEvent(new Event("apnajind:authchange"));
+      } else {
+        await BusinessService.save(
+          data,
+          sessionStorage.getItem(MERCHANT_TOKEN),
+        );
+      }
+      if (isNew) {
+        Toast.show("Business registered. Your temporary PIN is ready.");
+        location.hash = "#/merchant";
+        return;
+      }
+      Toast.show("Saved. Sent for re-approval.");
+      await this.profile();
+    } catch (error) {
+      Toast.show(error.message);
+      button.disabled = false;
+    }
+  }
+}

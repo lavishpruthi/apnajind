@@ -1,0 +1,8 @@
+{
+  "name": "apnajind",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node js/dev-server.js"
+  }
+}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>ApnaJind - Jind ka apna directory</title>
+  <meta name="theme-color" content="#202F55">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://nominatim.openstreetmap.org; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+
+<body>
+  <a class="skip-link" href="#app">Skip to content</a>
+  <header class="top">
+    <div class="wrap">
+      <div class="brand">Apna<b>Jind</b></div>
+      <div class="sub">Jind ka apna directory</div>
+      <div class="top-actions"><button class="language-toggle" id="languageToggle" type="button" aria-label="Change language">हिन्दी</button><button class="install-app" id="installApp" type="button" hidden>＋ Install app</button><button class="session-logout" id="sessionLogout" type="button" hidden></button></div>
+      <form class="search" id="searchForm" role="search"><input id="q" type="search" list="searchSuggestions" autocomplete="off"
+          placeholder="Search shop, food, doctor, area" aria-label="Search businesses"><button
+          class="btn ac">Search</button><datalist id="searchSuggestions"></datalist></form>
+    </div>
+  </header>
+  <main class="wrap" id="app" tabindex="-1"></main>
+  <nav class="bottom" id="nav" aria-label="Main"></nav>
+  <div id="loader" popover="manual" role="status" aria-live="polite" aria-label="Loading" hidden>
+    <div class="loader-card">
+      <svg class="loader-wordmark" viewBox="0 0 440 126" role="img" aria-label="ApnaJind">
+        <defs>
+          <linearGradient id="loader-ink" x1="0" x2="1"><stop offset="0" stop-color="#183b35"/><stop offset=".72" stop-color="#285b4a"/><stop offset="1" stop-color="#bd8125"/></linearGradient>
+          <clipPath id="loader-write-clip"><rect class="loader-write-mask" x="0" y="0" width="0" height="126"/></clipPath>
+        </defs>
+        <text class="loader-wordmark-ghost" x="220" y="91" text-anchor="middle">ApnaJind</text>
+        <text class="loader-wordmark-ink" x="220" y="91" text-anchor="middle" clip-path="url(#loader-write-clip)">ApnaJind</text>
+        <path class="loader-flourish" d="M87 105c62 12 186 13 266-2 19-4 31-9 35-15-10 4-17 9-24 16"/>
+      </svg>
+      <p class="loader-copy">Your town, coming into view</p>
+    </div>
+  </div>
+  <div id="toast" popover="manual" role="status"></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

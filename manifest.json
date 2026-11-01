@@ -1,0 +1,18 @@
+{
+  "name": "ApnaJind",
+  "short_name": "ApnaJind",
+  "description": "Jind ka apna directory — businesses, food and services in one place",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F2F4EF",
+  "theme_color": "#1B2A5C",
+  "icons": [
+    {
+      "src": "icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
