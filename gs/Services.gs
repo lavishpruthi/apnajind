@@ -1,4 +1,28 @@
 /** Business rules. Each service is stateless; repositories do the I/O. */
+class SettingsService {
+  static publicSettings() {
+    const props = PropertiesService.getScriptProperties();
+    return {
+      supportEmail: props.getProperty("SUPPORT_EMAIL") || "",
+      supportPhone: props.getProperty("SUPPORT_PHONE") || "",
+    };
+  }
+  static save(d) {
+    const email = clean_(d.email, 120).toLowerCase();
+    const phone = clean_(d.phone, 20);
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      throw new AppError("Enter a valid support email address");
+    if (phone && !/^\+?[0-9 ()-]{7,20}$/.test(phone))
+      throw new AppError("Enter a valid support phone number");
+    const props = PropertiesService.getScriptProperties();
+    if (email) props.setProperty("SUPPORT_EMAIL", email);
+    else props.deleteProperty("SUPPORT_EMAIL");
+    if (phone) props.setProperty("SUPPORT_PHONE", phone);
+    else props.deleteProperty("SUPPORT_PHONE");
+    return SettingsService.publicSettings();
+  }
+}
+
 class CodeService {
   static bust() {
     CacheService.getScriptCache().removeAll(["codes", "list"]);
@@ -348,7 +372,422 @@ class CustomerAuthService {
       profile: CustomerAuthService.profile(customer),
     };
   }
+  static remove(d, customer) {
+    const password = String(d.password || "");
+    if (
+      !password ||
+      Auth.hash(password, String(customer.email).toLowerCase()) !==
+        customer.pwHash
+    )
+      throw new AppError(
+        "Your password is incorrect. Your account was not deleted.",
+      );
+    new CustomerRepo().remove(customer.id);
+    new ReportRepo()
+      .all()
+      .filter((report) => String(report.reporterId) === String(customer.id))
+      .reverse()
+      .forEach((report) => new ReportRepo().remove(report.id));
+    new FollowRepo()
+      .all()
+      .filter((follow) => String(follow.customerId) === String(customer.id))
+      .reverse()
+      .forEach((follow) => new FollowRepo().remove(follow.id));
+    new ReviewRepo()
+      .all()
+      .filter((review) => String(review.customerId) === String(customer.id))
+      .reverse()
+      .forEach((review) => new ReviewRepo().remove(review.id));
+    return { deleted: true };
+  }
 }
+class DiscoveryService {
+  static approvedBusiness_(id) {
+    const business = new BusinessRepo().find(id);
+    return business && business.status === "approved" ? business : null;
+  }
+  static merchantBusiness_(d) {
+    const business = BusinessService.mine_(d);
+    if (business.status !== "approved")
+      throw new AppError(
+        "Your listing must be approved before you can publish updates.",
+      );
+    if (isOn_(business.pinChangeRequired))
+      throw new AppError(
+        "Change your temporary PIN before publishing updates.",
+      );
+    return business;
+  }
+  static offers(d) {
+    const businessId = clean_(d && d.businessId, 40);
+    const businessMap = new Map(
+      new BusinessRepo()
+        .all()
+        .filter((b) => b.status === "approved")
+        .map((b) => [String(b.id), b]),
+    );
+    const now = Date.now();
+    return new OfferRepo()
+      .all()
+      .filter(
+        (o) =>
+          isOn_(o.active) &&
+          new Date(o.endsAt).getTime() >= now &&
+          (!businessId || String(o.businessId) === businessId) &&
+          businessMap.has(String(o.businessId)),
+      )
+      .map((o) => {
+        const business = businessMap.get(String(o.businessId));
+        return {
+          id: o.id,
+          businessId: o.businessId,
+          businessName: business.name,
+          title: o.title,
+          description: o.description,
+          promoCode: o.promoCode,
+          endsAt: o.endsAt,
+          created: o.created,
+        };
+      })
+      .sort((a, b) => new Date(a.endsAt) - new Date(b.endsAt));
+  }
+  static merchantContent(d) {
+    const business = DiscoveryService.merchantBusiness_(d);
+    return {
+      offers: new OfferRepo()
+        .all()
+        .filter((o) => String(o.businessId) === String(business.id))
+        .map((o) => ({ ...o, _row: undefined })),
+      posts: new BusinessPostRepo()
+        .all()
+        .filter((p) => String(p.businessId) === String(business.id))
+        .map((p) => ({ ...p, _row: undefined }))
+        .sort((a, b) => new Date(b.created) - new Date(a.created))
+        .slice(0, 20),
+    };
+  }
+  static offerSave(d) {
+    const business = DiscoveryService.merchantBusiness_(d);
+    const title = clean_(d.title, 80),
+      description = clean_(d.description, 300),
+      promoCode = clean_(d.promoCode, 30).toUpperCase();
+    const endsAt = clean_(d.endsAt, 30);
+    const expiry = new Date(endsAt).getTime();
+    if (!title || !description)
+      throw new AppError("Add a title and description for the offer.");
+    if (
+      !Number.isFinite(expiry) ||
+      expiry < Date.now() ||
+      expiry > Date.now() + 366 * 86400000
+    )
+      throw new AppError(
+        "Choose an offer expiry date within the next 12 months.",
+      );
+    new OfferRepo().insert({
+      businessId: business.id,
+      title,
+      description,
+      promoCode,
+      endsAt: new Date(expiry).toISOString(),
+      active: true,
+    });
+    return true;
+  }
+  static offerDelete(d) {
+    const business = DiscoveryService.merchantBusiness_(d);
+    const id = clean_(d.offerId, 40);
+    const repo = new OfferRepo();
+    const offer = repo.find(id);
+    if (!offer || String(offer.businessId) !== String(business.id))
+      throw new AppError("Offer not found for your business.");
+    repo.remove(id);
+    return { deleted: true };
+  }
+  static postSave(d) {
+    const business = DiscoveryService.merchantBusiness_(d);
+    const message = clean_(d.message, 500);
+    if (message.length < 8)
+      throw new AppError("Write an update of at least 8 characters.");
+    new BusinessPostRepo().insert({ businessId: business.id, message });
+    return true;
+  }
+  static posts(d) {
+    const businessId = clean_(d && d.businessId, 40);
+    const approved = new Map(
+      new BusinessRepo()
+        .all()
+        .filter((b) => b.status === "approved")
+        .map((b) => [String(b.id), b]),
+    );
+    return new BusinessPostRepo()
+      .all()
+      .filter(
+        (p) =>
+          approved.has(String(p.businessId)) &&
+          (!businessId || String(p.businessId) === businessId),
+      )
+      .map((p) => ({
+        id: p.id,
+        businessId: p.businessId,
+        businessName: approved.get(String(p.businessId)).name,
+        message: p.message,
+        created: p.created,
+      }))
+      .sort((a, b) => new Date(b.created) - new Date(a.created))
+      .slice(0, 100);
+  }
+  static events() {
+    const now = Date.now();
+    return new EventRepo()
+      .all()
+      .filter(
+        (event) =>
+          isOn_(event.active) && new Date(event.endsAt).getTime() >= now,
+      )
+      .map((event) => ({ ...event, _row: undefined }))
+      .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+  }
+  static eventList() {
+    return new EventRepo()
+      .all()
+      .map((event) => ({ ...event, _row: undefined }))
+      .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+  }
+  static eventSave(d) {
+    const title = clean_(d.title, 100),
+      description = clean_(d.description, 600),
+      location = clean_(d.location, 180),
+      link = clean_(d.link, 300);
+    const startsAt = new Date(d.startsAt),
+      endsAt = new Date(d.endsAt);
+    if (
+      !title ||
+      !location ||
+      !Number.isFinite(startsAt.getTime()) ||
+      !Number.isFinite(endsAt.getTime()) ||
+      endsAt < startsAt
+    )
+      throw new AppError("Add a title, location, and valid event dates.");
+    if (link && !/^https:\/\//i.test(link))
+      throw new AppError("Event link must start with https://");
+    const values = {
+      title,
+      description,
+      location,
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+      link,
+      active: true,
+    };
+    if (d.id) new EventRepo().update(clean_(d.id, 40), values);
+    else new EventRepo().insert(values);
+    return true;
+  }
+  static eventSet(d) {
+    const event = new EventRepo().find(clean_(d.id, 40));
+    if (!event) throw new AppError("Event not found.");
+    new EventRepo().update(event.id, { active: isOn_(d.active) });
+    return true;
+  }
+  static reviews(d) {
+    const businessId = clean_(d && d.businessId, 40);
+    const businesses = new Map(
+      new BusinessRepo()
+        .all()
+        .filter((b) => b.status === "approved")
+        .map((b) => [String(b.id), b]),
+    );
+    return new ReviewRepo()
+      .all()
+      .filter(
+        (r) =>
+          r.status === "approved" &&
+          businesses.has(String(r.businessId)) &&
+          (!businessId || String(r.businessId) === businessId),
+      )
+      .map((r) => ({
+        id: r.id,
+        businessId: r.businessId,
+        businessName: businesses.get(String(r.businessId)).name,
+        rating: Number(r.rating),
+        comment: r.comment,
+        ownerReply: r.ownerReply || "",
+        created: r.created,
+      }))
+      .sort((a, b) => new Date(b.created) - new Date(a.created));
+  }
+  static reviewSave(d, customer) {
+    const businessId = clean_(d.businessId, 40),
+      rating = Number(d.rating),
+      comment = clean_(d.comment, 600);
+    if (!DiscoveryService.approvedBusiness_(businessId))
+      throw new AppError("This business is not available for review.");
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5)
+      throw new AppError("Choose a rating from 1 to 5 stars.");
+    if (comment.length < 10)
+      throw new AppError("Write at least 10 characters in your review.");
+    const repo = new ReviewRepo();
+    const existing = repo
+      .all()
+      .find(
+        (r) =>
+          String(r.customerId) === String(customer.id) &&
+          String(r.businessId) === businessId,
+      );
+    const data = { rating, comment, ownerReply: "", status: "pending" };
+    if (existing) repo.update(existing.id, data);
+    else repo.insert({ businessId, customerId: customer.id, ...data });
+    return { submitted: true };
+  }
+  static reviewReply(d) {
+    const business = DiscoveryService.merchantBusiness_(d),
+      repo = new ReviewRepo();
+    const review = repo.find(clean_(d.reviewId, 40)),
+      reply = clean_(d.reply, 500);
+    if (
+      !review ||
+      String(review.businessId) !== String(business.id) ||
+      review.status !== "approved"
+    )
+      throw new AppError("Approved review not found for your business.");
+    if (reply.length < 3)
+      throw new AppError("Write a reply of at least 3 characters.");
+    repo.update(review.id, { ownerReply: reply });
+    return true;
+  }
+  static reviewAdminList() {
+    const names = new Map(
+      new BusinessRepo().all().map((b) => [String(b.id), b.name]),
+    );
+    return new ReviewRepo()
+      .all()
+      .map((r) => ({
+        id: r.id,
+        businessId: r.businessId,
+        businessName: names.get(String(r.businessId)) || "Removed business",
+        rating: Number(r.rating),
+        comment: r.comment,
+        status: r.status,
+        created: r.created,
+      }))
+      .sort((a, b) => new Date(b.created) - new Date(a.created));
+  }
+  static reviewSet(d) {
+    const status = clean_(d.status, 20);
+    if (!["approved", "rejected"].includes(status))
+      throw new AppError("Choose approve or reject.");
+    new ReviewRepo().update(clean_(d.id, 40), { status });
+    return true;
+  }
+  static toggleFollow(d, customer) {
+    const businessId = clean_(d.businessId, 40);
+    if (!DiscoveryService.approvedBusiness_(businessId))
+      throw new AppError("This business is not available to follow.");
+    const repo = new FollowRepo(),
+      existing = repo
+        .all()
+        .find(
+          (f) =>
+            String(f.customerId) === String(customer.id) &&
+            String(f.businessId) === businessId,
+        );
+    if (existing) {
+      repo.remove(existing.id);
+      return { following: false };
+    }
+    const business = DiscoveryService.approvedBusiness_(businessId);
+    repo.insert({
+      customerId: customer.id,
+      businessId,
+      hoursSnapshot: String(business.hours || ""),
+      availabilitySnapshot: String(business.availability || ""),
+    });
+    return { following: true };
+  }
+  static customerFollows(customer) {
+    const follows = new FollowRepo()
+      .all()
+      .filter((f) => String(f.customerId) === String(customer.id));
+    const businesses = new Map(
+      new BusinessRepo()
+        .all()
+        .filter((b) => b.status === "approved")
+        .map((b) => [String(b.id), b]),
+    );
+    return follows
+      .map((f) => businesses.get(String(f.businessId)))
+      .filter(Boolean)
+      .map(BusinessService.pub_);
+  }
+  static customerActivity(customer) {
+    const repo = new FollowRepo();
+    const follows = repo
+      .all()
+      .filter((f) => String(f.customerId) === String(customer.id));
+    const ids = new Set(follows.map((f) => String(f.businessId)));
+    if (!ids.size) return [];
+    const businesses = new Map(
+      new BusinessRepo()
+        .all()
+        .filter((b) => b.status === "approved")
+        .map((b) => [String(b.id), b]),
+    );
+    const hoursChanges = [];
+    follows.forEach((follow) => {
+      const business = businesses.get(String(follow.businessId));
+      if (!business) return;
+      const hours = String(business.hours || ""),
+        availability = String(business.availability || "");
+      if (
+        (hours !== String(follow.hoursSnapshot || "") ||
+          availability !== String(follow.availabilitySnapshot || "")) &&
+        new Date(business.updated).getTime() >
+          new Date(follow.created).getTime()
+      ) {
+        hoursChanges.push({
+          type: "hours",
+          id: `${business.id}_${business.updated}`,
+          businessId: business.id,
+          businessName: business.name,
+          title: "Hours or availability changed",
+          message: "Check the latest opening hours before you visit.",
+          created: business.updated,
+        });
+        repo.update(follow.id, {
+          hoursSnapshot: hours,
+          availabilitySnapshot: availability,
+        });
+      }
+    });
+    const offers = DiscoveryService.offers({})
+      .filter((o) => ids.has(String(o.businessId)))
+      .map((o) => ({
+        type: "offer",
+        id: o.id,
+        businessId: o.businessId,
+        businessName: o.businessName,
+        title: o.title,
+        message: o.description,
+        created: o.created,
+      }));
+    const posts = DiscoveryService.posts({})
+      .filter((p) => ids.has(String(p.businessId)))
+      .map((p) => ({
+        type: "update",
+        id: p.id,
+        businessId: p.businessId,
+        businessName: p.businessName,
+        title: "Business update",
+        message: p.message,
+        created: p.created,
+      }));
+    return offers
+      .concat(posts, hoursChanges)
+      .sort((a, b) => new Date(b.created) - new Date(a.created))
+      .slice(0, 50);
+  }
+}
+
 class BusinessService {
   static pub_(o) {
     const c = Object.assign({}, o);
@@ -549,10 +988,13 @@ class BusinessService {
       throw new AppError("Wrong number or PIN");
     }
     if (r.pinExpiresAt && new Date(r.pinExpiresAt).getTime() <= Date.now())
-      throw new AppError("Your temporary PIN expired. Ask an admin to generate a new PIN.");
+      throw new AppError(
+        "Your temporary PIN expired. Ask an admin to generate a new PIN.",
+      );
     // A permanent PIN has no expiry. Only legacy records (version 0 with no
     // temporary expiry metadata) need the one-time migration reset.
-    const needsPinChange = isOn_(r.pinChangeRequired) ||
+    const needsPinChange =
+      isOn_(r.pinChangeRequired) ||
       (!r.pinExpiresAt && (Number(r.pinVersion) || 0) === 0);
     if (needsPinChange && !isOn_(r.pinChangeRequired))
       new BusinessRepo().update(r.id, {
@@ -586,7 +1028,9 @@ class BusinessService {
   static save(d) {
     const r = BusinessService.mine_(d);
     if (isOn_(r.pinChangeRequired))
-      throw new AppError("Change your temporary PIN before updating your listing.");
+      throw new AppError(
+        "Change your temporary PIN before updating your listing.",
+      );
     d.phone = String(r.phone);
     const f = BusinessService.fields_(d, r.id);
     f.status = "pending";
@@ -595,13 +1039,12 @@ class BusinessService {
     return true;
   }
   static adminList() {
-    return new BusinessRepo().all().map((record) => Object.assign(
-      BusinessService.pub_(record),
-      {
+    return new BusinessRepo().all().map((record) =>
+      Object.assign(BusinessService.pub_(record), {
         pinChangeRequired: isOn_(record.pinChangeRequired),
         pinExpiresAt: String(record.pinExpiresAt || ""),
-      },
-    ));
+      }),
+    );
   }
   static adminSet(d) {
     const p = {};

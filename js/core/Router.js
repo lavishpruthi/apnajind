@@ -45,7 +45,7 @@ export class Router {
     }
 
     const role = this.roleResolver();
-    if (match.access !== "public" && match.access !== role) {
+    if (match.access !== "public" && match.access !== role && !(match.access === "customer" && role !== "guest")) {
       const destination =
         role === "guest"
           ? "#/auth"

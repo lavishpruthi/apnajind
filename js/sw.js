@@ -1,4 +1,4 @@
-const CACHE = "apnajind-shell-v25";
+const CACHE = "apnajind-shell-v39";
 const SHELL = [
   "./",
   "./index.html",
@@ -6,7 +6,7 @@ const SHELL = [
   "./js/config.js",
   "./manifest.json",
   "./icons/app-icon.svg",
-  ...["arrow-left", "bag", "bed", "book", "building", "cake", "car", "check", "chevron-left", "chevron-right", "copy", "edit", "flag", "heart", "home", "key", "list", "logout", "phone", "pin", "plus", "scissors", "search", "share", "shield", "store", "tag", "trash", "users", "utensils", "wrench", "x"].map((name) => `./icons/${name}.svg`),
+  ...["arrow-left", "bag", "bed", "book", "building", "calendar", "cake", "car", "check", "chevron-left", "chevron-right", "copy", "edit", "flag", "heart", "home", "instagram", "key", "list", "logout", "phone", "pin", "plus", "scissors", "search", "share", "shield", "store", "tag", "trash", "users", "utensils", "wrench", "x"].map((name) => `./icons/${name}.svg`),
   "./css/base.css",
   "./css/components.css",
   "./js/core/Dom.js",
@@ -27,6 +27,8 @@ const SHELL = [
   "./js/services/LocationService.js",
   "./js/services/MasterService.js",
   "./js/services/CodeService.js",
+  "./js/services/SettingsService.js",
+  "./js/services/DiscoveryService.js",
   "./js/views/BaseView.js",
   "./js/views/HomeView.js",
   "./js/views/FoodView.js",
@@ -35,7 +37,13 @@ const SHELL = [
   "./js/views/AdminView.js",
   "./js/views/AccessView.js",
   "./js/views/ProfileView.js",
+  "./js/views/PromotionView.js",
+  "./js/views/ActivityView.js",
+  "./js/views/MapView.js",
+  "./js/views/EventsView.js",
   "./js/views/SavedView.js",
+  "./js/views/admin/SettingsPanel.js",
+  "./js/views/admin/CommunityPanel.js",
   "./js/views/admin/ApprovalPanel.js",
   "./js/views/admin/ReportsPanel.js",
   "./js/views/admin/CrudPanel.js",

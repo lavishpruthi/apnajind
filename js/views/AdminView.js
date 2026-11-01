@@ -7,6 +7,8 @@ import { CodeMasterPanel } from "./admin/CodeMasterPanel.js";
 import { RolePanel } from "./admin/RolePanel.js";
 import { UserPanel } from "./admin/UserPanel.js";
 import { ReportsPanel } from "./admin/ReportsPanel.js";
+import { SettingsPanel } from "./admin/SettingsPanel.js";
+import { CommunityPanel } from "./admin/CommunityPanel.js";
 /** Panel registry: add a line to expose a new admin screen. Visibility follows the logged-in user's role permissions. */
 const TABS = [
   {
@@ -38,6 +40,14 @@ const TABS = [
     perm: "user.manage",
     Panel: UserPanel,
   },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: "key",
+    perm: "settings.manage",
+    Panel: SettingsPanel,
+  },
+  { id: "community", label: "Events & reviews", icon: "calendar", perm: "events.manage", Panel: CommunityPanel },
 ];
 export class AdminView extends BaseView {
   static nav = "admin";

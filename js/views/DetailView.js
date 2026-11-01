@@ -9,6 +9,7 @@ import { CustomerService } from "../services/CustomerService.js";
 import { RecentService } from "../services/RecentService.js";
 import { hoursMarkup } from "../core/Hours.js";
 import { Locale } from "../core/Locale.js";
+import { DiscoveryService } from "../services/DiscoveryService.js";
 
 export class DetailView extends BaseView {
   static nav = "home";
@@ -21,6 +22,13 @@ export class DetailView extends BaseView {
   async render() {
     await CodeService.load();
     const business = await BusinessService.get(this.id);
+    const [offers, posts, reviews, follows] = await Promise.all([
+      DiscoveryService.offers(business.id).catch(() => []),
+      DiscoveryService.posts(business.id).catch(() => []),
+      DiscoveryService.reviews(business.id).catch(() => []),
+      DiscoveryService.follows().catch(() => []),
+    ]);
+    const following = follows.some((item) => String(item.id) === String(business.id));
     RecentService.add(business.id);
     const category = CodeService.byCode("CATEGORY", business.category);
     const photos = (business.photos || []).map(safeImageSrc).filter(Boolean);
@@ -38,23 +46,29 @@ export class DetailView extends BaseView {
       business.lat && business.lng
         ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${business.lat},${business.lng}`)}`
         : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${business.name} ${business.address} ${business.area || ""} Jind Haryana`)}`;
-    this.html = `<div class="detail-toolbar"><a class="btn ghost detail-back" href="${esc(this.returnHash || "#/")}">${icon("arrow-left")}<span>${Locale.t("back")}</span></a><div class="detail-tools"><button class="icon-btn detail-save ${saved ? "is-saved" : ""}" type="button" data-act="save" aria-label="${saved ? "Remove" : "Save"} ${esc(business.name)} ${saved ? "from" : "to"} saved businesses" aria-pressed="${saved}" title="${saved ? "Remove saved listing" : "Save listing"}">${icon("heart")}</button><button class="icon-btn detail-share" type="button" data-act="share" aria-label="Share ${esc(business.name)}" title="Share listing">${icon("share")}</button></div></div>
+    const offersMarkup = offers.length ? `<section class="box detail-panel detail-deals"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("tag")}</span><div><p class="section-kicker">A LITTLE SOMETHING EXTRA</p><h2>Current offers</h2></div></div><div class="detail-offer-list">${offers.map((offer) => `<article class="detail-offer"><div><span class="deal-shop">LOCAL OFFER</span><h3>${esc(offer.title)}</h3><p>${esc(offer.description)}</p>${offer.promoCode ? `<button type="button" class="deal-code" data-copy-offer="${esc(offer.promoCode)}"><span>SHOW THIS CODE</span><strong>${esc(offer.promoCode)}</strong><small>Tap to copy</small></button>` : ""}</div><small class="meta">Until ${esc(this.formatDate(offer.endsAt))}</small></article>`).join("")}</div></section>` : "";
+    const postsMarkup = posts.length ? `<section class="box detail-panel detail-posts"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("store")}</span><div><p class="section-kicker">FROM THE BUSINESS</p><h2>Latest updates</h2></div></div>${posts.slice(0, 5).map((post) => `<article class="detail-post"><p>${esc(post.message)}</p><small>${esc(this.formatDate(post.created))}</small></article>`).join("")}</section>` : "";
+    const reviewsMarkup = `<section class="box detail-panel detail-reviews"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("heart")}</span><div><p class="section-kicker">LOCAL EXPERIENCES</p><h2>Customer reviews${reviews.length ? ` <span class="review-average">${(reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length).toFixed(1)} ★ · ${reviews.length}</span>` : ""}</h2></div></div>${reviews.length ? reviews.map((review) => `<article class="customer-review"><div class="review-stars" aria-label="${review.rating} out of 5 stars">${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}</div><p>${esc(review.comment)}</p>${review.ownerReply ? `<div class="owner-reply"><strong>Reply from ${esc(business.name)}</strong><p>${esc(review.ownerReply)}</p></div>` : ""}<small>${esc(this.formatDate(review.created))}</small></article>`).join("") : '<p class="meta">No reviews yet. Share a helpful local experience.</p>'}<form id="customer-review-form" class="customer-review-form"><h3>Leave a review</h3><label for="review-rating">Your rating</label><select id="review-rating" required><option value="">Choose stars</option><option value="5">★★★★★ — Loved it</option><option value="4">★★★★ — Great</option><option value="3">★★★ — Good</option><option value="2">★★ — Could be better</option><option value="1">★ — Needs work</option></select><label for="review-comment">Your experience</label><textarea id="review-comment" rows="3" maxlength="600" minlength="10" placeholder="What should other Jind customers know?" required></textarea><button class="btn ghost" type="submit">Submit for review</button><p class="meta">Reviews appear after a quick community review.</p></form></section>`;
+    this.html = `<div class="business-detail-page"><div class="detail-toolbar"><a class="btn ghost detail-back" href="${esc(this.returnHash || "#/")}">${icon("arrow-left")}<span>${Locale.t("back")}</span></a><div class="detail-tools"><button class="btn ghost detail-follow ${following ? "is-following" : ""}" type="button" data-act="follow" aria-pressed="${following}">${icon(following ? "check" : "plus")}<span>${following ? "Following" : "Follow"}</span></button><button class="icon-btn detail-save ${saved ? "is-saved" : ""}" type="button" data-act="save" aria-label="${saved ? "Remove" : "Save"} ${esc(business.name)} ${saved ? "from" : "to"} saved businesses" aria-pressed="${saved}" title="${saved ? "Remove saved listing" : "Save listing"}">${icon("heart")}</button><button class="icon-btn detail-share" type="button" data-act="share" aria-label="Share ${esc(business.name)}" title="Share listing">${icon("share")}</button></div></div>
       <section class="detail-gallery-shell" aria-label="Business photos">
         <div class="gallery" id="business-gallery" role="region" aria-label="Photos of ${esc(business.name)}" tabindex="0">${pictures}</div>
         ${photoCount > 1 ? `<button class="gallery-control gallery-prev" type="button" data-gallery="prev" aria-label="Previous photo">${icon("chevron-left")}</button><button class="gallery-control gallery-next" type="button" data-gallery="next" aria-label="Next photo">${icon("chevron-right")}</button><div class="gallery-footer"><div class="gallery-dots" role="group" aria-label="Choose a photo">${photos.map((_, index) => `<button class="gallery-dot ${index === 0 ? "on" : ""}" type="button" data-slide-to="${index}" aria-label="Show photo ${index + 1}" aria-pressed="${index === 0}"></button>`).join("")}</div><span class="gallery-count" id="gallery-count">1 / ${photoCount}</span></div>` : ""}
-      </section><h1 class="detail-title">${esc(business.name)} ${business.verified ? '<span class="verified-badge">✓ ApnaJind verified</span>' : ""}</h1>
-      <p class="meta">${esc(category?.description || business.category)} · ${esc(business.area || "Jind")}${updatedDate ? ` · Updated ${esc(updatedDate)}` : ""}</p>
+      </section><header class="detail-overview"><div class="detail-category-pill">${icon("list")} ${esc(category?.description || business.category)}</div><h1 class="detail-title">${esc(business.name)} ${business.verified ? '<span class="verified-badge">✓ ApnaJind verified</span>' : ""}</h1>
+      <p class="detail-submeta">${icon("pin")} ${esc(business.area || "Jind")}${updatedDate ? `<span class="detail-updated">Updated ${esc(updatedDate)}</span>` : ""}</p>
       ${business.availability === "temporarily_closed" ? `<p class="availability-badge closed">${Locale.t("closed")}</p>` : business.availability === "seasonal" ? `<p class="availability-badge seasonal">${Locale.t("seasonal")}</p>` : business.availability === "available" ? `<p class="availability-badge">${Locale.t("available")}</p>` : ""}
-      <p class="detail-description">${esc(business.description)}</p>
-      <div class="btns">
+      <p class="detail-description">${esc(business.description || "Discover this local business in Jind.")}</p></header>
+      <div class="btns detail-actions">
         <a class="btn ok" href="tel:+91${esc(business.phone)}">${icon("phone")} ${Locale.t("call")}</a>
         ${business.whatsapp ? `<a class="btn ac" target="_blank" rel="noopener noreferrer" href="https://wa.me/91${esc(business.whatsapp)}">WhatsApp</a>` : ""}
         <a class="btn ghost" target="_blank" rel="noopener noreferrer" href="${map}">${icon("pin")} ${Locale.t("directions")}</a>
       </div>
-      <section class="box"><h2>${Locale.t("services")}</h2>${(business.services || []).map((service) => `<span class="tag">${esc(service)}</span>`).join("") || '<span class="meta">Not listed</span>'}</section>
-      <section class="box"><h2>${Locale.t("hours")}</h2>${hoursMarkup(business.hours, Locale.language)}</section>
-      <section class="box"><h2>${Locale.t("location")}</h2><p id="business-address">${esc(business.address)}${business.area ? `, ${esc(business.area)}` : ""}, Jind</p><button class="btn ghost address-copy" type="button" data-act="copy-address">${icon("copy")} Copy address</button></section>
-      <section class="box"><h2>${Locale.t("contact")}</h2><p>${esc(business.owner || "Business owner")} · ${esc(business.phone)}</p><details class="listing-report"><summary>Report incorrect listing details</summary><form id="listing-report"><label for="report-reason">What needs correcting?</label><select id="report-reason" required><option value="">Choose a reason</option><option value="wrong_contact">Contact details are wrong</option><option value="wrong_address">Address or area is wrong</option><option value="closed">Business appears closed</option><option value="other">Other issue</option></select><label for="report-details">Details <span class="label-hint">Optional</span></label><textarea id="report-details" rows="3" maxlength="500" placeholder="Help us understand what is out of date"></textarea><button class="btn ghost" type="submit">Send report</button></form></details></section>`;
+      ${offersMarkup}${postsMarkup}${reviewsMarkup}<div class="detail-content-grid"><div class="detail-main-column">
+        <section class="box detail-panel"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("utensils")}</span><div><p class="section-kicker">WHAT YOU CAN FIND</p><h2>${Locale.t("services")}</h2></div></div><div class="detail-service-list">${(business.services || []).map((service) => `<span class="tag">${esc(service)}</span>`).join("") || '<span class="meta">Not listed</span>'}</div></section>
+        <section class="box detail-panel"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("home")}</span><div><p class="section-kicker">PLAN YOUR VISIT</p><h2>${Locale.t("hours")}</h2></div></div>${hoursMarkup(business.hours, Locale.language)}</section>
+      </div><aside class="detail-side-column">
+        <section class="box detail-panel detail-location-card"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("pin")}</span><div><p class="section-kicker">COME ON OVER</p><h2>${Locale.t("location")}</h2></div></div><p id="business-address">${esc(business.address)}${business.area ? `, ${esc(business.area)}` : ""}, Jind</p><div class="btns detail-location-actions"><a class="btn ok" target="_blank" rel="noopener noreferrer" href="${map}">${icon("pin")} Get directions</a><button class="btn ghost address-copy" type="button" data-act="copy-address">${icon("copy")} Copy</button></div></section>
+        <section class="box detail-panel detail-contact-card"><div class="detail-panel-heading"><span class="detail-panel-icon">${icon("phone")}</span><div><p class="section-kicker">SAY HELLO</p><h2>${Locale.t("contact")}</h2></div></div><p class="detail-owner">${esc(business.owner || "Business owner")}</p><a class="detail-phone" href="tel:+91${esc(business.phone)}">+91 ${esc(business.phone)}</a><details class="listing-report"><summary>Report incorrect details</summary><form id="listing-report"><label for="report-reason">What needs correcting?</label><select id="report-reason" required><option value="">Choose a reason</option><option value="wrong_contact">Contact details are wrong</option><option value="wrong_address">Address or area is wrong</option><option value="closed">Business appears closed</option><option value="other">Other issue</option></select><label for="report-details">Details <span class="label-hint">Optional</span></label><textarea id="report-details" rows="3" maxlength="500" placeholder="Help us understand what is out of date"></textarea><button class="btn ghost" type="submit">Send report</button></form></details></section>
+      </aside></div></div>`;
     document.title = `${business.name} – ApnaJind`;
     this.actions({
       save: (_event, button) => {
@@ -66,6 +80,17 @@ export class DetailView extends BaseView {
           button.title = isSaved ? "Remove saved listing" : "Save listing";
           Toast.show(isSaved ? "Saved for later." : "Removed from saved businesses.");
         } catch (error) { Toast.show(error.message); }
+      },
+      follow: async (_event, button) => {
+        button.disabled = true;
+        try {
+          const result = await DiscoveryService.toggleFollow(business.id);
+          button.classList.toggle("is-following", result.following);
+          button.setAttribute("aria-pressed", String(result.following));
+          button.innerHTML = `${icon(result.following ? "check" : "plus")}<span>${result.following ? "Following" : "Follow"}</span>`;
+          Toast.show(result.following ? "You’ll see this business’s updates in your feed." : "Business unfollowed.");
+        } catch (error) { Toast.show(error.message); }
+        finally { button.disabled = false; }
       },
       share: async () => {
         try {
@@ -88,6 +113,11 @@ export class DetailView extends BaseView {
       },
     });
     this.on("#listing-report", "submit", (event) => this.submitReport(event, business.id));
+    this.on("#customer-review-form", "submit", (event) => this.submitReview(event, business.id));
+    this.host.querySelectorAll("[data-copy-offer]").forEach((button) => button.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(button.dataset.copyOffer); Toast.show("Offer code copied."); }
+      catch { Toast.show(`Use offer code ${button.dataset.copyOffer} at the business.`); }
+    }));
     if (photoCount > 1) this.setupGallery(photoCount);
   }
 
@@ -108,6 +138,18 @@ export class DetailView extends BaseView {
       form.reset();
       form.closest("details").open = false;
       Toast.show("Thanks. Your report was sent for review.");
+    } catch (error) { Toast.show(error.message); }
+    finally { button.disabled = false; }
+  }
+
+  async submitReview(event, businessId) {
+    event.preventDefault();
+    const form = event.currentTarget, button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    try {
+      await DiscoveryService.submitReview({ businessId, rating: Number(this.$("#review-rating").value), comment: this.$("#review-comment").value.trim() });
+      Toast.show("Thanks. Your review was sent for moderation.");
+      form.reset();
     } catch (error) { Toast.show(error.message); }
     finally { button.disabled = false; }
   }

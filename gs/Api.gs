@@ -4,6 +4,53 @@ const ROUTES = {
   list: { fn: () => BusinessService.list() },
   get: { fn: (d) => BusinessService.get(d) },
   codes: { fn: () => CodeService.publicCodes() },
+  settings: { fn: () => SettingsService.publicSettings() },
+  settingsSave: { perm: "settings.manage", fn: (d) => SettingsService.save(d) },
+  offers: { fn: (d) => DiscoveryService.offers(d) },
+  posts: { fn: (d) => DiscoveryService.posts(d) },
+  events: { fn: () => DiscoveryService.events() },
+  reviews: { fn: (d) => DiscoveryService.reviews(d) },
+  merchantContent: {
+    merchant: true,
+    fn: (d) => DiscoveryService.merchantContent(d),
+  },
+  offerSave: { merchant: true, fn: (d) => DiscoveryService.offerSave(d) },
+  offerDelete: { merchant: true, fn: (d) => DiscoveryService.offerDelete(d) },
+  postSave: { merchant: true, fn: (d) => DiscoveryService.postSave(d) },
+  reviewReply: { merchant: true, fn: (d) => DiscoveryService.reviewReply(d) },
+  customerReview: {
+    auth: "customer",
+    fn: (d, c) => DiscoveryService.reviewSave(d, c),
+  },
+  customerFollow: {
+    auth: "customer",
+    fn: (d, c) => DiscoveryService.toggleFollow(d, c),
+  },
+  customerFollows: {
+    auth: "customer",
+    fn: (d, c) => DiscoveryService.customerFollows(c),
+  },
+  customerActivity: {
+    auth: "customer",
+    fn: (d, c) => DiscoveryService.customerActivity(c),
+  },
+  eventAdminList: {
+    perm: "events.manage",
+    fn: () => DiscoveryService.eventList(),
+  },
+  eventSave: {
+    perm: "events.manage",
+    fn: (d) => DiscoveryService.eventSave(d),
+  },
+  eventSet: { perm: "events.manage", fn: (d) => DiscoveryService.eventSet(d) },
+  reviewAdminList: {
+    perm: "events.manage",
+    fn: () => DiscoveryService.reviewAdminList(),
+  },
+  reviewSet: {
+    perm: "events.manage",
+    fn: (d) => DiscoveryService.reviewSet(d),
+  },
   register: { fn: (d) => BusinessService.register(d) },
   mLogin: { fn: (d) => BusinessService.login(d) },
   mMine: { fn: (d) => BusinessService.mine(d) },
@@ -16,6 +63,10 @@ const ROUTES = {
   customerMe: {
     auth: "customer",
     fn: (d, c) => CustomerAuthService.profile(c),
+  },
+  customerDelete: {
+    auth: "customer",
+    fn: (d, c) => CustomerAuthService.remove(d, c),
   },
   report: { auth: "customer", fn: (d, c) => BusinessService.report(d, c) },
   bList: { perm: "business.approve", fn: () => BusinessService.adminList() },
@@ -51,6 +102,17 @@ const SERIALIZED_ACTIONS = new Set([
   "mLogin",
   "mPinChange",
   "customerRegister",
+  "customerDelete",
+  "offerSave",
+  "offerDelete",
+  "postSave",
+  "reviewReply",
+  "customerReview",
+  "customerFollow",
+  "customerActivity",
+  "eventSave",
+  "eventSet",
+  "reviewSet",
   "report",
   "bSet",
   "bPinGenerate",
@@ -64,13 +126,23 @@ const SERIALIZED_ACTIONS = new Set([
   "uSave",
   "uDelete",
 ]);
-const GET_ACTIONS = new Set(["list", "get", "codes"]);
+const GET_ACTIONS = new Set([
+  "list",
+  "get",
+  "codes",
+  "settings",
+  "offers",
+  "posts",
+  "events",
+  "reviews",
+]);
 function dispatch_(action, d) {
   const r = Object.prototype.hasOwnProperty.call(ROUTES, action)
     ? ROUTES[action]
     : null;
   if (!r) throw new AppError("Unknown action");
   if (r.auth === "customer") return r.fn(d, Auth.customer(d.token));
+  if (r.merchant) return r.fn(d);
   return r.fn(d, r.perm === undefined ? null : Auth.staff(d.token, r.perm));
 }
 function respond_(fn) {

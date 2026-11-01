@@ -48,7 +48,9 @@ class Repository {
         Math.floor(Math.random() * 1296).toString(36);
     o.created = now;
     o.updated = now;
-    this.sheet.appendRow(this.headers.map((h) => sheetValue_(o[h] == null ? "" : o[h])));
+    this.sheet.appendRow(
+      this.headers.map((h) => sheetValue_(o[h] == null ? "" : o[h])),
+    );
     return o;
   }
   update(id, patch) {
@@ -59,7 +61,9 @@ class Repository {
     });
     this.sheet
       .getRange(r._row, 1, 1, this.headers.length)
-      .setValues([this.headers.map((h) => sheetValue_(rec[h] == null ? "" : rec[h]))]);
+      .setValues([
+        this.headers.map((h) => sheetValue_(rec[h] == null ? "" : rec[h])),
+      ]);
     return rec;
   }
   remove(id) {
@@ -119,7 +123,104 @@ class BusinessRepo extends Repository {
 
 class ReportRepo extends Repository {
   constructor() {
-    super("BusinessReports", ["id", "businessId", "reporterId", "reason", "details", "status", "created", "updated"], "Q");
+    super(
+      "BusinessReports",
+      [
+        "id",
+        "businessId",
+        "reporterId",
+        "reason",
+        "details",
+        "status",
+        "created",
+        "updated",
+      ],
+      "Q",
+    );
+  }
+}
+class OfferRepo extends Repository {
+  constructor() {
+    super(
+      "Offers",
+      [
+        "id",
+        "businessId",
+        "title",
+        "description",
+        "promoCode",
+        "endsAt",
+        "active",
+        "created",
+        "updated",
+      ],
+      "O",
+    );
+  }
+}
+class BusinessPostRepo extends Repository {
+  constructor() {
+    super(
+      "BusinessPosts",
+      ["id", "businessId", "message", "created", "updated"],
+      "P",
+    );
+  }
+}
+class EventRepo extends Repository {
+  constructor() {
+    super(
+      "Events",
+      [
+        "id",
+        "title",
+        "description",
+        "location",
+        "startsAt",
+        "endsAt",
+        "link",
+        "active",
+        "created",
+        "updated",
+      ],
+      "E",
+    );
+  }
+}
+class ReviewRepo extends Repository {
+  constructor() {
+    super(
+      "Reviews",
+      [
+        "id",
+        "businessId",
+        "customerId",
+        "rating",
+        "comment",
+        "ownerReply",
+        "status",
+        "created",
+        "updated",
+      ],
+      "V",
+    );
+  }
+}
+class FollowRepo extends Repository {
+  constructor() {
+    super(
+      "Follows",
+      [
+        "id",
+        "customerId",
+        "businessId",
+        "hoursSnapshot",
+        "availabilitySnapshot",
+        "created",
+        "updated",
+      ],
+      "F",
+    );
   }
 }
 class CodeTypeRepo extends Repository {

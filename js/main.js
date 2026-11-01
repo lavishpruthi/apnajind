@@ -14,11 +14,31 @@ import { CustomerService } from "./services/CustomerService.js";
 import { AccessView } from "./views/AccessView.js";
 import { ProfileView } from "./views/ProfileView.js";
 import { SavedView } from "./views/SavedView.js";
+import { PromotionView } from "./views/PromotionView.js";
+import { ActivityView } from "./views/ActivityView.js";
+import { MapView } from "./views/MapView.js";
+import { EventsView } from "./views/EventsView.js";
+import { DiscoveryService } from "./services/DiscoveryService.js";
 import { BusinessService } from "./services/BusinessService.js";
 import { Locale } from "./core/Locale.js";
 
 const MERCHANT_TOKEN = "apnajind_merchant_token";
 const RECENT_SEARCHES_KEY = "apnajind_recent_searches_v1";
+
+function refreshActivityBadge() {
+  if (!CustomerService.loggedIn) return;
+  const link = document.querySelector('#nav a[data-nav="updates"]');
+  const seenKey = `apnajind_activity_seen_${CustomerService.profile?.id || "customer"}`;
+  if (!link) return;
+  DiscoveryService.activity().then((items) => {
+    let seen = 0;
+    try { seen = new Date(localStorage.getItem(seenKey) || 0).getTime(); } catch { /* Activity can still load without storage. */ }
+    const count = items.filter((item) => new Date(item.created).getTime() > seen).length;
+    let badge = link.querySelector(".nav-notice-count");
+    if (count && !badge) { badge = document.createElement("span"); badge.className = "nav-notice-count"; badge.setAttribute("aria-label", `${count} new updates`); link.append(badge); }
+    if (badge) { badge.hidden = count === 0; badge.textContent = count > 9 ? "9+" : String(count); }
+  }).catch(() => {});
+}
 
 function renderRecentSearches() {
   let searches = [];
@@ -46,23 +66,41 @@ function updateRoleShell() {
   document.documentElement.lang = Locale.language;
   const role = currentRole();
   const routes = {
+    guest: [
+      ["home", Locale.t("home"), "#/", "home"],
+      ["food", Locale.t("food"), "#/food", "utensils"],
+      ["profile", Locale.t("profile"), "#/profile", "users"],
+    ],
     customer: [
       ["home", Locale.t("home"), "#/", "home"],
       ["food", Locale.t("food"), "#/food", "utensils"],
+      ["updates", "Updates", "#/updates", "calendar"],
       ["saved", Locale.t("saved"), "#/saved", "heart"],
       ["profile", Locale.t("profile"), "#/profile", "users"],
     ],
-    merchant: [["merchant", "My business", "#/merchant", "store"]],
-    admin: [["admin", "Admin", "#/admin", "shield"]],
+    merchant: [
+      ["home", Locale.t("home"), "#/", "home"],
+      ["food", Locale.t("food"), "#/food", "utensils"],
+      ["updates", "Updates", "#/updates", "calendar"],
+      ["saved", Locale.t("saved"), "#/saved", "heart"],
+      ["profile", Locale.t("profile"), "#/profile", "users"],
+    ],
+    admin: [
+      ["home", Locale.t("home"), "#/", "home"],
+      ["food", Locale.t("food"), "#/food", "utensils"],
+      ["updates", "Updates", "#/updates", "calendar"],
+      ["saved", Locale.t("saved"), "#/saved", "heart"],
+      ["profile", Locale.t("profile"), "#/profile", "users"],
+    ],
   };
-  $("#nav").hidden = role === "guest";
+  $("#nav").hidden = false;
   $("#nav").innerHTML = (routes[role] || [])
     .map(
       ([key, label, href, glyph]) =>
         `<a href="${href}" data-nav="${key}">${icon(glyph)}${label}</a>`,
     )
     .join("");
-  $("#searchForm").hidden = role !== "customer";
+  $("#searchForm").hidden = false;
   $("#q").placeholder = Locale.language === "hi" ? "दुकान, खाना, डॉक्टर या इलाका खोजें" : "Search shop, food, doctor, area";
   const logout = $("#sessionLogout");
   const language = $("#languageToggle");
@@ -70,6 +108,7 @@ function updateRoleShell() {
   language.setAttribute("aria-label", Locale.language === "hi" ? "Switch language to English" : "भाषा हिंदी में बदलें");
   logout.hidden = role === "guest";
   logout.innerHTML = `${icon("logout")}<span>Log out</span>`;
+  if (CustomerService.loggedIn) window.setTimeout(refreshActivityBadge, 0);
 }
 
 /** Application bootstrap: wires core services, nav, routes and the service worker. */
@@ -115,6 +154,7 @@ class App {
       updateRoleShell();
       App.router?.route();
     });
+    window.addEventListener("apnajind:activityseen", refreshActivityBadge);
     window.addEventListener("apnajind:directoryupdated", () => {
       const route = location.hash.split("?")[0];
       if (currentRole() === "customer" && (route === "#/" || route === "#" || route === "#/food" || route === "#/saved" || route.startsWith("#/c/") || route.startsWith("#/s/"))) App.router?.route();
@@ -142,11 +182,7 @@ class App {
       const destination =
         currentRole() === "customer"
           ? "#/"
-          : currentRole() === "merchant"
-            ? "#/merchant"
-            : currentRole() === "admin"
-              ? "#/admin"
-              : "#/auth";
+        : "#/";
       location.hash = destination;
     }
     App.router = new Router($("#app"))
@@ -158,6 +194,10 @@ class App {
       .add("food", FoodView)
       .add("saved", SavedView)
       .add("profile", ProfileView)
+      .add("promote", PromotionView)
+      .add("updates", ActivityView)
+      .add("map", MapView)
+      .add("events", EventsView)
       .add("b/(.+)", DetailView)
       .add("merchant/login", AccessView, "guest")
       .add("merchant/(new)", MerchantView, "guest")
@@ -166,7 +206,7 @@ class App {
       .add("admin(?:/(\\w+))?", AdminView);
     App.router.start();
     AuthService.restore().catch((error) => Toast.show(error.message));
-    CustomerService.restore().catch((error) => Toast.show(error.message));
+    CustomerService.restore().then(refreshActivityBadge).catch((error) => Toast.show(error.message));
     if ("serviceWorker" in navigator)
       addEventListener("load", () =>
         navigator.serviceWorker.register("sw.js").catch(() => {}),

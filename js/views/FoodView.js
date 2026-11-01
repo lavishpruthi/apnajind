@@ -8,7 +8,7 @@ import { Toast } from "../core/Toast.js";
 
 export class FoodView extends BaseView {
   static nav = "food";
-  static access = "customer";
+  static access = "public";
   async render() {
     await CodeService.load();
     const [businesses, categories, areas] = await Promise.all([
