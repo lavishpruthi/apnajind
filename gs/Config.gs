@@ -1,5 +1,9 @@
 /** Shared constants and base error type. Script property required: ADMIN_PASSWORD (used once by setup()). */
-const CFG = { CACHE_SEC: 300, TOKEN_HOURS: { m: 72, s: 8, c: 168 } };
+const CFG = {
+  CACHE_SEC: 300,
+  TOKEN_HOURS: { m: 72, s: 8, c: 168 },
+  REMEMBER_HOURS: { m: 2160, c: 2160 },
+};
 /** Permission catalogue. Roles store a comma-separated subset; '*' means everything. */
 const PERMS = {
   "business.approve": "Approve / reject / feature businesses",

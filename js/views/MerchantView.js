@@ -10,6 +10,7 @@ import { scheduleFields, readSchedule, formatHours } from "../core/Hours.js";
 import { LocationService } from "../services/LocationService.js";
 import { PinService } from "../services/PinService.js";
 import { DiscoveryService } from "../services/DiscoveryService.js";
+import { SessionStore } from "../services/SessionStore.js";
 
 const MERCHANT_TOKEN = "apnajind_merchant_token";
 const ISSUED_PIN = "apnajind_merchant_issued_pin";
@@ -29,7 +30,7 @@ export class MerchantView extends BaseView {
       void CodeService.load().then(() => this.refreshRegistrationOptions()).catch((error) => Toast.show(error.message));
       return;
     }
-    if (sessionStorage.getItem(MERCHANT_TOKEN)) return this.profile();
+    if (SessionStore.read(MERCHANT_TOKEN)) return this.profile();
     return this.login();
   }
 
@@ -38,6 +39,7 @@ export class MerchantView extends BaseView {
       <div class="box"><form id="merchant-login">
         <label for="merchant-phone">Mobile number</label><input id="merchant-phone" inputmode="numeric" autocomplete="tel" maxlength="10" required>
         <label for="merchant-pin">PIN</label><input id="merchant-pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="6" required>
+        <label class="remember-option"><input id="merchant-remember" type="checkbox"><span><strong>Stay signed in on this device</strong><small>Keep me signed in for up to 90 days</small></span></label>
         <div class="btns"><button class="btn" type="submit">Log in</button><a class="btn ac" href="#/merchant/new">Register a business</a></div>
       </form></div>`;
     this.on("#merchant-login", "submit", async (event) => {
@@ -45,13 +47,15 @@ export class MerchantView extends BaseView {
       const button = this.$('button[type="submit"]');
       button.disabled = true;
       try {
+        const rememberMe = this.$("#merchant-remember")?.checked || false;
         const result = await BusinessService.login(
           this.$("#merchant-phone").value.trim(),
           this.$("#merchant-pin").value.trim(),
+          rememberMe,
         );
         AuthService.logout();
         CustomerService.logout(false);
-        sessionStorage.setItem(MERCHANT_TOKEN, result.token);
+        SessionStore.write(MERCHANT_TOKEN, result.token, rememberMe);
         window.dispatchEvent(new Event("apnajind:authchange"));
         location.hash = "#/merchant";
       } catch (error) {
@@ -84,7 +88,7 @@ export class MerchantView extends BaseView {
     try {
       await CodeService.load();
       const business = await BusinessService.mine(
-        sessionStorage.getItem(MERCHANT_TOKEN),
+        SessionStore.read(MERCHANT_TOKEN),
       );
       let issued = null;
       try { issued = JSON.parse(sessionStorage.getItem(ISSUED_PIN) || "null"); } catch { /* Ignore invalid one-time display data. */ }
@@ -97,7 +101,7 @@ export class MerchantView extends BaseView {
       this.renderForm(business, false);
       await this.renderMerchantTools(business);
     } catch (error) {
-      sessionStorage.removeItem(MERCHANT_TOKEN);
+      SessionStore.remove(MERCHANT_TOKEN);
       window.dispatchEvent(new Event("apnajind:authchange"));
       Toast.show(error.message);
       this.login();
@@ -122,8 +126,9 @@ export class MerchantView extends BaseView {
       button.disabled = true;
       errorMessage.textContent = "";
       try {
-        const result = await PinService.change(sessionStorage.getItem(MERCHANT_TOKEN), form.elements.oldPin.value, form.elements.newPin.value, form.elements.confirmPin.value);
-        sessionStorage.setItem(MERCHANT_TOKEN, result.token);
+        const rememberMe = SessionStore.persistent(MERCHANT_TOKEN);
+        const result = await PinService.change(SessionStore.read(MERCHANT_TOKEN), form.elements.oldPin.value, form.elements.newPin.value, form.elements.confirmPin.value, rememberMe);
+        SessionStore.write(MERCHANT_TOKEN, result.token, rememberMe);
         sessionStorage.removeItem(ISSUED_PIN);
         Toast.show("Your merchant PIN was updated.");
         await this.profile();
@@ -191,7 +196,7 @@ export class MerchantView extends BaseView {
           <span id="photo-help" class="sr">You can add up to 10 photos. Remove a photo to replace it.</span>
           <div class="photo-list merchant-photo-list" id="photo-list">${this.photoMarkup()}</div>
         </section>
-        <div class="merchant-form-footer"><span class="meta">${isNew ? "Your listing is reviewed before it goes live." : "Changes may require admin approval."}</span><div class="btns"><button class="btn ghost" id="preview-business" type="button">Preview listing</button><button class="btn ac" id="save-business" type="submit">${isNew ? "Register business" : "Save changes"}</button>
+        <div class="merchant-form-footer"><span class="meta">${isNew ? "Your listing is reviewed before it goes live." : "Changes may require admin approval."}</span><div class="btns">${isNew ? '<label class="remember-option"><input id="merchant-remember" type="checkbox"><span><strong>Stay signed in on this device</strong><small>Keep me signed in for up to 90 days</small></span></label>' : ""}<button class="btn ghost" id="preview-business" type="button">Preview listing</button><button class="btn ac" id="save-business" type="submit">${isNew ? "Register business" : "Save changes"}</button>
           ${isNew ? '<a class="btn ghost" href="#/merchant">Already registered? Log in</a>' : ""}
         </div></div>
       </form></div>${!isNew ? `<section class="box merchant-security-card"><div><p class="auth-eyebrow">Account security</p><h2>Merchant sign-in PIN</h2><p class="meta">Change your PIN whenever you need to. Your current PIN is required.</p></div><button class="btn ghost" id="change-merchant-pin" type="button">${icon("key")} Change PIN</button></section>` : ""}<dialog class="listing-preview" id="listing-preview" aria-label="Business listing preview"></dialog>`;
@@ -540,6 +545,7 @@ export class MerchantView extends BaseView {
       whatsapp: this.$("#whatsapp-same-phone").checked ? phone : get("whatsapp"),
       owner: get("owner"),
       photos: this.photos,
+      rememberMe: isNew && Boolean(this.$("#merchant-remember")?.checked),
     };
     const button = this.$("#save-business");
     button.disabled = true;
@@ -554,12 +560,12 @@ export class MerchantView extends BaseView {
           whatsapp: result.whatsapp,
           businessName: result.businessName,
         }));
-        sessionStorage.setItem(MERCHANT_TOKEN, result.token);
+        SessionStore.write(MERCHANT_TOKEN, result.token, data.rememberMe);
         window.dispatchEvent(new Event("apnajind:authchange"));
       } else {
         await BusinessService.save(
           data,
-          sessionStorage.getItem(MERCHANT_TOKEN),
+          SessionStore.read(MERCHANT_TOKEN),
         );
       }
       if (isNew) {

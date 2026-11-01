@@ -105,8 +105,8 @@ export class BusinessService {
   static register(data) {
     return Api.request("register", data);
   }
-  static login(phone, pin) {
-    return Api.request("mLogin", { phone, pin });
+  static login(phone, pin, rememberMe = false) {
+    return Api.request("mLogin", { phone, pin, rememberMe });
   }
   static mine(token) {
     return Api.request("mMine", { token });

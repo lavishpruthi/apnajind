@@ -2,8 +2,8 @@ import { Api } from "./Api.js";
 import { AuthService } from "./AuthService.js";
 
 export class PinService {
-  static change(token, oldPin, newPin, confirmPin) {
-    return Api.request("mPinChange", { token, oldPin, newPin, confirmPin });
+  static change(token, oldPin, newPin, confirmPin, rememberMe = false) {
+    return Api.request("mPinChange", { token, oldPin, newPin, confirmPin, rememberMe });
   }
 
   static generateForMerchant(businessId) {

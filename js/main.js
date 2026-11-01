@@ -19,6 +19,7 @@ import { ActivityView } from "./views/ActivityView.js";
 import { MapView } from "./views/MapView.js";
 import { EventsView } from "./views/EventsView.js";
 import { DiscoveryService } from "./services/DiscoveryService.js";
+import { SessionStore } from "./services/SessionStore.js";
 import { BusinessService } from "./services/BusinessService.js";
 import { Locale } from "./core/Locale.js";
 
@@ -58,7 +59,7 @@ function saveRecentSearch(term) {
 function currentRole() {
   if (AuthService.loggedIn) return "admin";
   if (CustomerService.loggedIn) return "customer";
-  if (sessionStorage.getItem(MERCHANT_TOKEN)) return "merchant";
+  if (SessionStore.read(MERCHANT_TOKEN)) return "merchant";
   return "guest";
 }
 
@@ -136,7 +137,7 @@ class App {
       if (role === "admin") AuthService.logout();
       else if (role === "customer") CustomerService.logout();
       else if (role === "merchant") {
-        sessionStorage.removeItem(MERCHANT_TOKEN);
+        SessionStore.remove(MERCHANT_TOKEN);
         window.dispatchEvent(new Event("apnajind:authchange"));
       }
       location.hash = "#/auth";

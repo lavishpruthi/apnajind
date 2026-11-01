@@ -5,6 +5,7 @@ import { SettingsService } from "../services/SettingsService.js";
 import { Toast } from "../core/Toast.js";
 import { AuthService } from "../services/AuthService.js";
 import { BusinessService } from "../services/BusinessService.js";
+import { SessionStore } from "../services/SessionStore.js";
 
 export class ProfileView extends BaseView {
   static nav = "profile";
@@ -12,7 +13,7 @@ export class ProfileView extends BaseView {
 
   async render() {
     if (AuthService.loggedIn) return this.renderStaffProfile();
-    if (sessionStorage.getItem("apnajind_merchant_token")) return this.renderMerchantProfile();
+    if (SessionStore.read("apnajind_merchant_token")) return this.renderMerchantProfile();
     if (!CustomerService.loggedIn) {
       this.html = `<section class="box profile-section"><h1>Your ApnaJind profile</h1><p class="meta">Sign in to save businesses, follow updates and manage your account.</p><div class="btns"><a class="btn ac" href="#/auth">Sign in</a><a class="btn ghost" href="#/auth/register">Create account</a></div></section>`;
       return;
@@ -56,7 +57,7 @@ export class ProfileView extends BaseView {
 
   async renderMerchantProfile() {
     let business = null;
-    try { business = await BusinessService.mine(sessionStorage.getItem("apnajind_merchant_token")); }
+    try { business = await BusinessService.mine(SessionStore.read("apnajind_merchant_token")); }
     catch { /* The dashboard shows the actionable session error if needed. */ }
     this.html = `<h1>Merchant profile</h1><section class="box profile-card"><div class="profile-avatar" aria-hidden="true">${esc((business?.name || "M").trim().charAt(0).toUpperCase())}</div><div><h2>${esc(business?.name || "Merchant account")}</h2><p class="meta">ApnaJind merchant account</p></div><dl class="profile-details"><div><dt>Business</dt><dd>${esc(business?.name || "Business listing")}</dd></div><div><dt>Listing status</dt><dd>${esc(business?.status || "Unavailable")}</dd></div><div><dt>Mobile number</dt><dd>${esc(business?.phone || "")}</dd></div></dl></section><section class="box profile-section"><h2>Manage your business</h2><p class="meta">Update your listing, offers and customer replies.</p><a class="btn ac" href="#/merchant">Open merchant dashboard</a></section><section class="box profile-section"><h2>Explore ApnaJind</h2><p class="meta">Discover local businesses, food and events around Jind.</p><a class="btn ghost" href="#/">Browse Jind</a></section>`;
   }

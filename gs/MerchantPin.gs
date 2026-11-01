@@ -17,8 +17,12 @@ class MerchantPinService {
     };
   }
 
-  static token_(phone, version) {
-    return Auth.sign("m", String(phone) + "|" + String(Number(version) || 0));
+  static token_(phone, version, rememberMe) {
+    return Auth.sign(
+      "m",
+      String(phone) + "|" + String(Number(version) || 0),
+      rememberMe,
+    );
   }
 
   static checkAttempts_(phone) {
@@ -110,7 +114,7 @@ class MerchantPinService {
     });
     MerchantPinService.clearAttempts_(phone);
     return {
-      token: MerchantPinService.token_(phone, nextVersion),
+      token: MerchantPinService.token_(phone, nextVersion, isOn_(d.rememberMe)),
       pinChangeRequired: false,
     };
   }

@@ -343,7 +343,7 @@ class CustomerAuthService {
       status: "active",
       pwHash: Auth.hash(password, email),
     });
-    const token = Auth.sign("c", customer.id);
+    const token = Auth.sign("c", customer.id, isOn_(d.rememberMe));
     return { token, profile: CustomerAuthService.profile(customer) };
   }
   static login(d) {
@@ -368,7 +368,7 @@ class CustomerAuthService {
       throw new AppError("Wrong phone/email or password");
     }
     return {
-      token: Auth.sign("c", customer.id),
+      token: Auth.sign("c", customer.id, isOn_(d.rememberMe)),
       profile: CustomerAuthService.profile(customer),
     };
   }
@@ -969,7 +969,7 @@ class BusinessService {
     );
     CodeService.bust();
     return {
-      token: MerchantPinService.token_(f.phone, 0),
+      token: MerchantPinService.token_(f.phone, 0, isOn_(d.rememberMe)),
       pin,
       expiresAt: pinExpiresAt,
       phone: f.phone,
@@ -1003,7 +1003,7 @@ class BusinessService {
       });
     MerchantPinService.clearAttempts_(ph);
     return {
-      token: MerchantPinService.token_(ph, r.pinVersion),
+      token: MerchantPinService.token_(ph, r.pinVersion, isOn_(d.rememberMe)),
       pinChangeRequired: needsPinChange,
     };
   }

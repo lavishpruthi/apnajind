@@ -1,4 +1,5 @@
 import { Api } from "./Api.js";
+import { SessionStore } from "./SessionStore.js";
 
 const TOKEN_KEY = "apnajind_staff_token";
 const PROFILE_KEY = "apnajind_staff_profile";
@@ -44,9 +45,9 @@ export class AuthService {
 
   static async login(identity, password) {
     const result = await Api.request("login", { identity, password });
-    sessionStorage.removeItem(CUSTOMER_TOKEN_KEY);
-    sessionStorage.removeItem(CUSTOMER_PROFILE_KEY);
-    sessionStorage.removeItem(MERCHANT_TOKEN_KEY);
+    SessionStore.remove(CUSTOMER_TOKEN_KEY);
+    SessionStore.remove(CUSTOMER_PROFILE_KEY);
+    SessionStore.remove(MERCHANT_TOKEN_KEY);
     AuthService.token = result.token;
     AuthService.profile = result.profile;
     sessionStorage.setItem(TOKEN_KEY, result.token);

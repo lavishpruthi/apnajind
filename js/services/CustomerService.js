@@ -1,17 +1,18 @@
 import { Api } from "./Api.js";
 import { AuthService } from "./AuthService.js";
+import { SessionStore } from "./SessionStore.js";
 
 const TOKEN_KEY = "apnajind_customer_token";
 const PROFILE_KEY = "apnajind_customer_profile";
 const MERCHANT_TOKEN_KEY = "apnajind_merchant_token";
 
 export class CustomerService {
-  static token = sessionStorage.getItem(TOKEN_KEY) || "";
+  static token = SessionStore.read(TOKEN_KEY);
   static profile = CustomerService.readProfile();
 
   static readProfile() {
     try {
-      return JSON.parse(sessionStorage.getItem(PROFILE_KEY) || "null");
+      return SessionStore.readJSON(PROFILE_KEY);
     } catch {
       sessionStorage.removeItem(PROFILE_KEY);
       return null;
@@ -30,9 +31,10 @@ export class CustomerService {
       CustomerService.profile = await Api.request("customerMe", {
         token: CustomerService.token,
       });
-      sessionStorage.setItem(
+      SessionStore.write(
         PROFILE_KEY,
         JSON.stringify(CustomerService.profile),
+        SessionStore.persistent(TOKEN_KEY),
       );
       if (!hadProfile) window.dispatchEvent(new Event("apnajind:authchange"));
       return true;
@@ -45,19 +47,20 @@ export class CustomerService {
     }
   }
 
-  static async login(identity, password) {
-    const result = await Api.request("customerLogin", { identity, password });
+  static async login(identity, password, rememberMe = false) {
+    const result = await Api.request("customerLogin", { identity, password, rememberMe });
     AuthService.logout();
-    sessionStorage.removeItem(MERCHANT_TOKEN_KEY);
-    CustomerService.setSession(result);
+    SessionStore.remove(MERCHANT_TOKEN_KEY);
+    CustomerService.setSession(result, rememberMe);
     return CustomerService.profile;
   }
 
   static async register(data) {
+    const rememberMe = Boolean(data.rememberMe);
     const result = await Api.request("customerRegister", data);
     AuthService.logout();
-    sessionStorage.removeItem(MERCHANT_TOKEN_KEY);
-    CustomerService.setSession(result);
+    SessionStore.remove(MERCHANT_TOKEN_KEY);
+    CustomerService.setSession(result, rememberMe);
     return CustomerService.profile;
   }
 
@@ -66,25 +69,26 @@ export class CustomerService {
     CustomerService.logout(false);
   }
 
-  static setSession(result) {
+  static setSession(result, rememberMe = false) {
     CustomerService.token = result.token;
     CustomerService.profile = result.profile;
-    sessionStorage.setItem(TOKEN_KEY, result.token);
-    sessionStorage.setItem(PROFILE_KEY, JSON.stringify(result.profile));
+    SessionStore.write(TOKEN_KEY, result.token, rememberMe);
+    const persistent = SessionStore.persistent(TOKEN_KEY);
+    SessionStore.write(PROFILE_KEY, JSON.stringify(result.profile), persistent);
     window.dispatchEvent(new Event("apnajind:authchange"));
   }
 
   static logout(notify = true) {
     CustomerService.token = "";
     CustomerService.profile = null;
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(PROFILE_KEY);
+    SessionStore.remove(TOKEN_KEY);
+    SessionStore.remove(PROFILE_KEY);
     if (notify) window.dispatchEvent(new Event("apnajind:authchange"));
   }
 }
 
 window.addEventListener("apnajind:authchange", () => {
-  if (!sessionStorage.getItem(TOKEN_KEY)) {
+  if (!SessionStore.read(TOKEN_KEY)) {
     CustomerService.token = "";
     CustomerService.profile = null;
   }

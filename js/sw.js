@@ -1,4 +1,4 @@
-const CACHE = "apnajind-shell-v39";
+const CACHE = "apnajind-shell-v40";
 const SHELL = [
   "./",
   "./index.html",
@@ -29,6 +29,7 @@ const SHELL = [
   "./js/services/CodeService.js",
   "./js/services/SettingsService.js",
   "./js/services/DiscoveryService.js",
+  "./js/services/SessionStore.js",
   "./js/views/BaseView.js",
   "./js/views/HomeView.js",
   "./js/views/FoodView.js",

@@ -1,8 +1,9 @@
 import { Api } from "./Api.js";
 import { CustomerService } from "./CustomerService.js";
 import { AuthService } from "./AuthService.js";
+import { SessionStore } from "./SessionStore.js";
 
-const merchantToken = () => sessionStorage.getItem("apnajind_merchant_token") || "";
+const merchantToken = () => SessionStore.read("apnajind_merchant_token");
 const customerToken = () => ({ token: CustomerService.token });
 
 export class DiscoveryService {

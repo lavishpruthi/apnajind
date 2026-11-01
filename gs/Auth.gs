@@ -17,9 +17,12 @@ class Auth {
       ),
     );
   }
-  static sign(kind, sub) {
-    const p =
-      kind + "|" + sub + "|" + (Date.now() + CFG.TOKEN_HOURS[kind] * 3600000);
+  static sign(kind, sub, rememberMe) {
+    const tokenHours =
+      rememberMe && CFG.REMEMBER_HOURS[kind]
+        ? CFG.REMEMBER_HOURS[kind]
+        : CFG.TOKEN_HOURS[kind];
+    const p = kind + "|" + sub + "|" + (Date.now() + tokenHours * 3600000);
     return (
       Utilities.base64EncodeWebSafe(p) +
       "." +
