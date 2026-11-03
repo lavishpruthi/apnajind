@@ -135,23 +135,6 @@ export class AccessView extends BaseView {
     );
   }
 
-  adminLogin() {
-    this.html = `<section class="access-panel">
-      <p class="hero-kicker">Staff access</p>
-      <h1>Admin login</h1>
-      <p class="intro">Admin accounts are created by an administrator. Sign in with your phone, email, or username.</p>
-      <div class="box"><form id="admin-login">
-        <label for="admin-identity">Phone, email or username</label><input id="admin-identity" autocomplete="username" autocapitalize="none" required>
-        <label for="admin-password">Password</label><input id="admin-password" type="password" autocomplete="current-password" required>
-        <div class="btns"><button class="btn ac" type="submit">Log in</button></div>
-      </form></div>
-      <p class="access-switch"><a class="btn ghost auth-back" href="#/auth">${icon("arrow-left")} Back to sign in &amp; register</a></p>
-    </section>`;
-    this.on("#admin-login", "submit", (event) =>
-      this.submitAdminLogin(event),
-    );
-  }
-
   async submitCustomerRegister(event) {
     event.preventDefault();
     const button = this.$('button[type="submit"]');

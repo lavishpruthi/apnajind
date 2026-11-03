@@ -8,6 +8,7 @@ import { Toast } from "../core/Toast.js";
 import { isOpenNow, formatHours } from "../core/Hours.js";
 import { Locale } from "../core/Locale.js";
 import { DiscoveryService } from "../services/DiscoveryService.js";
+import { SessionStore } from "../services/SessionStore.js";
 
 let sessionSearchLocation = null;
 
@@ -119,7 +120,7 @@ export class HomeView extends BaseView {
     const localPicks = !selectedCategory && !term && businesses.length
       ? `<section class="local-picks"><div class="section-heading"><div><p class="section-kicker">FEATURED &amp; VERIFIED IN JIND</p><h2>Businesses worth knowing</h2></div><a class="rail-link" href="#listing-start">See all <span aria-hidden="true">→</span></a></div><div class="business-rail">${businesses.slice(0, 8).map((business) => this.card(business, geo)).join("")}</div></section>`
       : "";
-    const promotionCta = !selectedCategory && !term
+    const promotionCta = !selectedCategory && !term && SessionStore.read("apnajind_merchant_token")
       ? `<section class="home-promotion-cta"><span class="promotion-cta-icon">${icon("store")}</span><div><p class="section-kicker">FOR JIND BUSINESSES</p><h2>Ready to reach more local customers?</h2><p>Ask about featured listings, category spotlights and sponsored banners.</p></div><a class="btn ac" href="#/promote">Promote your business <span aria-hidden="true">→</span></a></section>`
       : "";
     const filters = `<form id="listing-filters" class="listing-filters" aria-label="Filter businesses">
@@ -138,12 +139,24 @@ export class HomeView extends BaseView {
 
     const featuredBusiness = !selectedCategory && !term ? businesses.find((item) => item.photos?.some((photo) => safeImageSrc(photo))) : null;
     const featuredPhoto = featuredBusiness ? safeImageSrc(featuredBusiness.photos?.find((photo) => safeImageSrc(photo))) : "";
+    const slide = (tone, href, kicker, heading, sub, cta, photo, art) =>
+      `<a class="banner-slide banner-tone-${tone}" href="${href}">${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : `<span class="banner-art" aria-hidden="true">${icon(art)}</span>`}<span class="banner-shade"></span><span class="banner-copy"><span class="banner-kicker">${kicker}</span><strong>${heading}</strong>${sub ? `<span class="banner-sub">${sub}</span>` : ""}<span class="banner-cta">${cta} <b aria-hidden="true">→</b></span></span></a>`;
+    const extraSlides = [];
+    if (offers.length) extraSlides.push(slide(1, `#/b/${encodeURIComponent(offers[0].businessId)}`, "OFFER AROUND JIND", esc(offers[0].title), esc(offers[0].businessName), "View offer", "", "tag"));
+    if (events.length) extraSlides.push(slide(2, "#/events", "COMING UP", esc(events[0].title), `${esc(new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(new Date(events[0].startsAt)))} · ${esc(events[0].location)}`, "See all events", "", "calendar"));
+    categories.slice(0, 3).forEach((category, index) => {
+      const match = businesses.find((business) => business.category === category.code && business.photos?.some((photo) => safeImageSrc(photo)));
+      const photo = match ? safeImageSrc(match.photos.find((item) => safeImageSrc(item))) : "";
+      extraSlides.push(slide(index % 3, `#/c/${encodeURIComponent(category.code)}`, "EXPLORE", esc(category.description), "", "Browse places", photo, metaValue(category.meta, "icon") || "list"));
+    });
+    extraSlides.push(slide(2, "#/promote", "FOR JIND BUSINESSES", "Reach more local customers", "Featured listings and sponsored banners", "Promote your business", "", "store"));
     this.html = `${savedCopyNotice}${!selectedCategory && !term
-      ? `<section class="home-hero ${featuredPhoto ? "has-feature-photo" : ""}"><div class="hero-copy"><p class="hero-kicker"><span class="hero-live-dot"></span> YOUR TOWN, YOUR FINDS</p><h1>Good places.<br><em>Closer to home.</em></h1><p class="intro">Discover the people and places that make Jind feel like yours.</p><div class="hero-actions"><button class="hero-explore" type="button" data-scroll-target="listing-start">Explore local <span aria-hidden="true">↓</span></button><a class="hero-map-link" href="#/map">Find on map ${icon("pin")}</a><a class="hero-map-link" href="#/events">Jind events ${icon("calendar")}</a></div></div>${featuredBusiness ? `<a class="hero-feature" href="#/b/${encodeURIComponent(featuredBusiness.id)}" aria-label="Discover ${esc(featuredBusiness.name)}"><span class="hero-feature-photo">${featuredPhoto ? `<img src="${esc(featuredPhoto)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">` : ""}</span><span class="hero-feature-label"><span class="hero-feature-kicker">A local favourite</span><strong>${esc(featuredBusiness.name)}</strong><span>${esc(featuredBusiness.area || "Jind")} <span aria-hidden="true">↗</span></span></span></a>` : `<div class="hero-art" aria-hidden="true"><span class="hero-art-orbit orbit-one"></span><span class="hero-art-orbit orbit-two"></span><span class="hero-art-sun"></span><span class="hero-art-word">अपना<br>JIND</span></div>`}</section>`
+      ? `<section class="banner-slider" aria-roledescription="carousel" aria-label="Highlights"><div class="banner-track"><section class="home-hero banner-slide ${featuredPhoto ? "has-feature-photo" : ""}"><div class="hero-copy"><p class="hero-kicker"><span class="hero-live-dot"></span> YOUR TOWN, YOUR FINDS</p><h1>Good places.<br><em>Closer to home.</em></h1><p class="intro">Discover the people and places that make Jind feel like yours.</p><div class="hero-actions"><button class="hero-explore" type="button" data-scroll-target="listing-start">Explore local <span aria-hidden="true">↓</span></button><a class="hero-map-link" href="#/map">Find on map ${icon("pin")}</a><a class="hero-map-link" href="#/events">Jind events ${icon("calendar")}</a></div></div>${featuredBusiness ? `<a class="hero-feature" href="#/b/${encodeURIComponent(featuredBusiness.id)}" aria-label="Discover ${esc(featuredBusiness.name)}"><span class="hero-feature-photo">${featuredPhoto ? `<img src="${esc(featuredPhoto)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">` : ""}</span><span class="hero-feature-label"><span class="hero-feature-kicker">A local favourite</span><strong>${esc(featuredBusiness.name)}</strong><span>${esc(featuredBusiness.area || "Jind")} <span aria-hidden="true">↗</span></span></span></a>` : `<div class="hero-art" aria-hidden="true"><span class="hero-art-orbit orbit-one"></span><span class="hero-art-orbit orbit-two"></span><span class="hero-art-sun"></span><span class="hero-art-word">अपना<br>JIND</span></div>`}</section>${extraSlides.join("")}</div><div class="banner-dots" role="tablist" aria-label="Choose slide"></div></section>`
       : `<h1>${title}</h1><p class="intro">Shops, food, doctors, tutors and services near you</p>`}
       ${categoryCards}${jindSpots}${dealRail}${eventRail}${jindNeighborhoods}${categoryBanners}${localPicks}${promotionCta}${filters}<section class="listing-section" id="listing-start"><div class="section-heading"><div><p class="section-kicker">${selectedCategory || term || hasActiveFilter ? "YOUR SEARCH" : "MADE FOR JIND"}</p><h2>${selectedCategory || term || hasActiveFilter ? "Businesses" : "Worth a visit"}</h2></div>${!selectedCategory && !term && !hasActiveFilter ? '<p>Good people. Great places. Right here.</p>' : ''}</div>
       ${visible.length ? visible.map((business) => this.card(business, geo)).join("") : `<div class="empty"><h2>${Locale.t("noResults")}</h2><p>${Locale.t("suggestions")}</p><a class="btn ghost" href="${term ? `#/s/${encodeURIComponent(this.routeValue)}` : "#/"}">${Locale.t("clear")}</a><div class="empty-suggestions"><strong>Browse categories</strong><div>${categories.slice(0, 6).map((item) => `<a class="tag" href="#/c/${encodeURIComponent(item.code)}">${esc(item.description)}</a>`).join("")}</div><strong>Explore areas</strong><div>${areas.slice(0, 6).map((item) => `<a class="tag" href="#/?area=${encodeURIComponent(item.code)}">${esc(item.description)}</a>`).join("")}</div></div></div>`}`;
     this.host.innerHTML += '</section>';
+    this.initBanners();
     this.$("[data-scroll-target]")?.addEventListener("click", () => this.$(`#${this.$("[data-scroll-target]").dataset.scrollTarget}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
     this.host.querySelectorAll("[data-copy-offer]").forEach((button) => button.addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(button.dataset.copyOffer); Toast.show("Offer code copied."); }
@@ -169,6 +182,35 @@ export class HomeView extends BaseView {
       location.hash = queryString ? `${base}?${queryString}` : base;
     });
     this.bindSaveButtons();
+  }
+
+  /** Dots, swipe tracking and auto-advance for the home banner slider. */
+  initBanners() {
+    const track = this.$(".banner-track");
+    const dots = this.$(".banner-dots");
+    if (!track || !dots) return;
+    const slides = [...track.children];
+    if (slides.length < 2) { dots.hidden = true; return; }
+    const go = (i) => track.scrollTo({ left: slides[i].offsetLeft - track.offsetLeft, behavior: "smooth" });
+    dots.innerHTML = slides.map((_, i) => `<button type="button" role="tab" aria-label="Slide ${i + 1}"></button>`).join("");
+    const buttons = [...dots.children];
+    let current = 0;
+    const mark = () => {
+      current = Math.round(track.scrollLeft / track.clientWidth);
+      buttons.forEach((b, i) => b.setAttribute("aria-selected", String(i === current)));
+    };
+    buttons.forEach((b, i) => b.addEventListener("click", () => go(i)));
+    track.addEventListener("scroll", mark, { passive: true });
+    mark();
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let paused = false;
+    const pause = (on) => () => { paused = on; };
+    ["pointerenter", "focusin", "touchstart"].forEach((e) => track.addEventListener(e, pause(true), { passive: true }));
+    ["pointerleave", "focusout", "touchend"].forEach((e) => track.addEventListener(e, pause(false), { passive: true }));
+    const timer = setInterval(() => {
+      if (!track.isConnected) return clearInterval(timer);
+      if (!paused && !document.hidden) go((current + 1) % slides.length);
+    }, 5000);
   }
 
   selectOptions(records, selected, emptyLabel, emptyValue = "") {

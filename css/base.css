@@ -1,24 +1,25 @@
 /* Design tokens, reset, layout, header/nav and the global progress indicator */
+/* Palette follows the idbibank theme: navy, green, orange */
 :root {
     color-scheme: light;
-    --bg: #f5f6f2;
-    --ink: #183b35;
-    --tx: #26332f;
-    --mut: #6c7972;
+    --bg: #f4f7fa;
+    --ink: #003366;
+    --tx: #1f2d3d;
+    --mut: #5f6f82;
     --sf: #fff;
-    --ac: #e3a63a;
-    --chili: #a84332;
-    --ok: #28775b;
-    --ln: #e2e7df;
+    --ac: #f58425;
+    --chili: #b3261e;
+    --ok: #00836c;
+    --ln: #e1e7ee;
     --r: 14px;
     --tap: 44px;
     --t: 180ms;
-    --paper: #fbfaf7;
-    --line-soft: #e9e6df;
-    --forest: #183f35;
-    --lime: #d9e9bd;
-    --peach: #f2d9c8;
-    --shadow-soft: 0 16px 44px rgb(36 48 39 / 8%)
+    --paper: #f4f7fa;
+    --line-soft: #e8edf3;
+    --forest: #003366;
+    --lime: #d7efe9;
+    --peach: #fde5d0;
+    --shadow-soft: 0 12px 32px rgb(0 51 102 / 8%)
 }
 
 * {
@@ -33,7 +34,7 @@ html {
 body {
     min-width: 320px;
     font: 16px/1.55 Hind, system-ui, sans-serif;
-    background: radial-gradient(ellipse at 50% -18rem, #eef0e8 0, transparent 48rem), var(--paper);
+    background: var(--paper);
     color: var(--tx);
     padding-bottom: calc(76px + env(safe-area-inset-bottom))
 }
@@ -54,7 +55,7 @@ button {
 }
 
 :focus-visible {
-    outline: 3px solid #28674d;
+    outline: 3px solid #00836c;
     outline-offset: 2px
 }
 
@@ -116,13 +117,13 @@ h2 {
 }
 
 .top {
-    background: rgb(245 246 242 / 94%);
+    background: rgb(255 255 255 / 92%);
     color: var(--ink);
     padding: calc(12px + env(safe-area-inset-top)) 0 16px;
     position: sticky;
     top: 0;
     z-index: 10;
-    border-bottom: 1px solid rgb(24 59 53 / 8%);
+    border-bottom: 1px solid rgb(0 51 102 / 8%);
     backdrop-filter: blur(16px);
 }
 
@@ -133,7 +134,7 @@ h2 {
 }
 
 .brand b {
-    color: #b87a10
+    color: #e06f0a
 }
 
 .sub {
@@ -159,7 +160,7 @@ h2 {
     border-radius: 12px;
     padding: 0 14px;
     min-height: var(--tap);
-    box-shadow: 0 2px 8px rgb(24 59 53 / 4%);
+    box-shadow: 0 2px 8px rgb(0 51 102 / 4%);
 }
 
 .bottom {
@@ -170,7 +171,7 @@ h2 {
     display: flex;
     padding-bottom: env(safe-area-inset-bottom);
     z-index: 10;
-    box-shadow: 0 -4px 14px rgb(27 42 92 / 4%)
+    box-shadow: 0 -4px 14px rgb(0 51 102 / 4%)
 }
 
 .bottom a {
@@ -206,7 +207,7 @@ h2 {
     margin: 0;
     padding: 0;
     border: 0;
-    background: rgb(245 247 243 / 94%);
+    background: rgb(244 247 250 / 94%);
     color: var(--ink);
     pointer-events: all;
     place-items: center;
@@ -229,16 +230,16 @@ h2 {
     box-shadow: none;
 }
 
-.loader-hindi { position: relative; display: grid; justify-items: center; width: min(86vw, 420px); padding-top: 44px; color: #183b35; }
+.loader-hindi { position: relative; display: grid; justify-items: center; width: min(86vw, 420px); padding-top: 44px; color: #003366; }
 .loader-typing { display: flex; align-items: baseline; gap: .13em; font-family: Hind, system-ui, sans-serif; font-size: clamp(48px, 12vw, 76px); font-weight: 700; line-height: 1.2; animation: loader-heart-pulse 1.08s ease-in-out infinite; }
 .loader-word, .loader-exclamation { opacity: 0; animation: loader-type-in 2.4s infinite; }
 .loader-delay-1 { animation-delay: .16s; }
 .loader-delay-2 { animation-delay: .32s; }
 .loader-delay-3 { animation-delay: .48s; }
 .loader-delay-4 { animation-delay: .64s; }
-.loader-exclamation { color: #bd8125; }
+.loader-exclamation { color: #e06f0a; }
 .loader-heartbeat { position: absolute; top: 0; width: 144px; height: 42px; overflow: visible; }
-.loader-heartbeat path { fill: none; stroke: #bd8125; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 240; stroke-dashoffset: 240; animation: loader-ecg 1.08s ease-in-out infinite; }
+.loader-heartbeat path { fill: none; stroke: #e06f0a; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 240; stroke-dashoffset: 240; animation: loader-ecg 1.08s ease-in-out infinite; }
 .loader-copy { margin-top: -4px; color: var(--mut); font-size: 14px; letter-spacing: .02em; }
 @keyframes loader-type-in {
     0%, 8% { opacity: 0; transform: translateY(5px); }

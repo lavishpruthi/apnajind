@@ -68,6 +68,4 @@ export function readSchedule(form) {
   return schedule;
 }
 
-export function dayNames() { return [...DAY_NAMES]; }
-
 function escapeHtml(value) { return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]); }
