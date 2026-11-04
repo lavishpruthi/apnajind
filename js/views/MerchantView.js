@@ -209,7 +209,24 @@ export class MerchantView extends BaseView {
 
     this.updateCompleteness();
     if (isNew) this.updateRegistrationProgress();
-    this.on("#business-form", "input", () => this.updateCompleteness());
+    this.on("#business-form", "input", (event) => {
+      const field = event.target;
+      if (isNew && field.matches('input:not([type]), input[type="text"], textarea')) {
+        const start = field.selectionStart;
+        const end = field.selectionEnd;
+        const uppercaseValue = field.value.toUpperCase();
+        if (field.value !== uppercaseValue) {
+          field.value = uppercaseValue;
+          if (start !== null && end !== null) {
+            field.setSelectionRange(
+              Math.min(start, uppercaseValue.length),
+              Math.min(end, uppercaseValue.length),
+            );
+          }
+        }
+      }
+      this.updateCompleteness();
+    });
     this.on("#business-form", "change", () => this.updateCompleteness());
     this.on("#hours-editor", "change", (event) => {
       if (!event.target.matches('input[type="checkbox"][name$="-closed"]')) return;
@@ -575,7 +592,10 @@ export class MerchantView extends BaseView {
     const matchedArea = CodeService.list("AREA").find((area) => area.description.toLocaleLowerCase() === query.toLocaleLowerCase());
     if (matchedArea) {
       this.$("#business-area").value = matchedArea.code;
-      if (!this.$("#business-address").value.trim()) this.$("#business-address").value = `${matchedArea.description}, Jind, Haryana`;
+      if (!this.$("#business-address").value.trim()) {
+        const address = `${matchedArea.description}, Jind, Haryana`;
+        this.$("#business-address").value = this.isRegistration ? address.toUpperCase() : address;
+      }
       this.updateCompleteness();
     }
     this.locationSearchPending = true;
@@ -596,7 +616,7 @@ export class MerchantView extends BaseView {
   applyLocation(result, updateAddress) {
     this.$("#business-lat").value = result.lat;
     this.$("#business-lng").value = result.lng;
-    if (updateAddress && result.address) this.$("#business-address").value = result.address;
+    if (updateAddress && result.address) this.$("#business-address").value = this.isRegistration ? result.address.toUpperCase() : result.address;
     const address = `${result.address || ""} ${Object.values(result.parts || {}).join(" ")}`.toLocaleLowerCase();
     const area = CodeService.list("AREA").find((item) => address.includes(String(item.description).toLocaleLowerCase()));
     if (area) this.$("#business-area").value = area.code;
@@ -606,6 +626,10 @@ export class MerchantView extends BaseView {
   async submitForm(event, isNew) {
     event.preventDefault();
     const get = (id) => this.$(`#business-${id}`).value.trim();
+    const getText = (id) => {
+      const value = get(id);
+      return isNew ? value.toUpperCase() : value;
+    };
     const phone = get("phone");
     let hours;
     try { hours = readSchedule(this.$("#business-form")); }
@@ -630,19 +654,19 @@ export class MerchantView extends BaseView {
       return;
     }
     const data = {
-      name: get("name"),
+      name: getText("name"),
       category: get("category"),
-      description: get("description"),
-      services: get("services"),
+      description: getText("description"),
+      services: getText("services"),
       hours,
       availability: get("availability"),
-      address: get("address"),
+      address: getText("address"),
       area: get("area"),
       lat: get("lat"),
       lng: get("lng"),
       phone,
       whatsapp: this.$("#whatsapp-same-phone").checked ? phone : get("whatsapp"),
-      owner: get("owner"),
+      owner: getText("owner"),
       photos: this.photos,
       rememberMe: isNew && Boolean(this.$("#merchant-remember")?.checked),
     };
