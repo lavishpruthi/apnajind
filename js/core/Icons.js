@@ -3,7 +3,8 @@ import { esc } from "./Dom.js";
 const ICONS = new Set([
   "arrow-left", "bag", "bed", "book", "building", "calendar", "cake", "car", "check",
   "chevron-left", "chevron-right", "copy", "edit", "flag", "heart", "home",
-  "key", "list", "logout", "phone", "pin", "plus", "scissors", "search",
+  "basket", "briefcase", "dumbbell", "hammer", "key", "list", "logout",
+  "mandi", "party", "phone", "pin", "plus", "scissors", "search", "sofa",
   "share", "shield", "store", "tag", "trash", "users", "utensils", "wrench", "x",
 ]);
 

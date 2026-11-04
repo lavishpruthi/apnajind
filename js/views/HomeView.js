@@ -19,6 +19,16 @@ const JIND_SPOTS = [
   { name: "Pandu Pindara", subtitle: "About 6.5 km via Jind–Gohana Road", icon: "pin", map: "Pandu Pindara, Jind, Haryana", tone: "pindara" },
 ];
 
+const CATEGORY_ICONS = {
+  MANDI: "mandi",
+  HOME: "sofa",
+  GROCERY: "basket",
+  HARDWARE: "hammer",
+  "PRO-SERV": "briefcase",
+  EVENTS: "party",
+  FITNESS: "dumbbell",
+};
+
 export class HomeView extends BaseView {
   static nav = "home";
   static access = "public";
@@ -91,7 +101,7 @@ export class HomeView extends BaseView {
         : "Everything in Jind, one place";
     const categoryCards = !selectedCategory && !term
       ? `<section class="category-section"><div class="section-heading"><div><p class="section-kicker">Explore Jind</p><h2>Find your kind of place</h2></div><p>Tap a category to see its businesses.</p></div><div class="cats category-stories">${categories
-          .map((category) => `<a class="cat" href="#/c/${encodeURIComponent(category.code)}" aria-label="Browse ${esc(category.description)} businesses"><span class="cat-story-ring"><span class="cat-icon">${icon(metaValue(category.meta, "icon") || "list")}</span></span><span class="cat-label">${esc(category.description)}</span></a>`)
+          .map((category) => `<a class="cat" href="#/c/${encodeURIComponent(category.code)}" aria-label="Browse ${esc(category.description)} businesses"><span class="cat-story-ring"><span class="cat-icon">${icon(metaValue(category.meta, "icon") || CATEGORY_ICONS[category.code] || "list")}</span></span><span class="cat-label">${esc(category.description)}</span></a>`)
           .join("")}</div></section>`
       : "";
     const jindNeighborhoods = !selectedCategory && !term

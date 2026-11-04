@@ -1,4 +1,4 @@
-const CACHE = "apnajind-shell-v46";
+const CACHE = "apnajind-shell-v47";
 const SHELL = [
   "./",
   "./index.html",
@@ -6,7 +6,7 @@ const SHELL = [
   "./js/config.js",
   "./manifest.json",
   "./icons/app-icon.svg",
-  ...["arrow-left", "bag", "bed", "book", "building", "calendar", "cake", "car", "check", "chevron-left", "chevron-right", "copy", "edit", "flag", "heart", "home", "instagram", "key", "list", "logout", "phone", "pin", "plus", "scissors", "search", "share", "shield", "store", "tag", "trash", "users", "utensils", "wrench", "x"].map((name) => `./icons/${name}.svg`),
+  ...["arrow-left", "bag", "basket", "bed", "book", "briefcase", "building", "calendar", "cake", "car", "check", "chevron-left", "chevron-right", "copy", "dumbbell", "edit", "flag", "hammer", "heart", "home", "instagram", "key", "list", "logout", "mandi", "party", "phone", "pin", "plus", "scissors", "search", "share", "shield", "sofa", "store", "tag", "trash", "users", "utensils", "wrench", "x"].map((name) => `./icons/${name}.svg`),
   "./css/base.css",
   "./css/components.css",
 ];
