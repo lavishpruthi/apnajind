@@ -201,11 +201,37 @@ input:focus, select:focus, textarea:focus { border-color: #00836c; box-shadow: 0
 .box.merchant-form-card { margin: 0 auto 34px; padding: 0; overflow: hidden; }
 .merchant-tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--ln); padding: 10px 14px 0; background: #f4f8f9; scrollbar-width: thin; }
 .merchant-tab { display: inline-flex; min-height: 48px; flex: none; align-items: center; gap: 7px; border: 0; border-bottom: 3px solid transparent; padding: 0 13px; background: transparent; color: var(--mut); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.merchant-registration-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; overflow: visible; padding: 12px clamp(12px, 3vw, 24px); }
+.merchant-registration-steps .merchant-tab { min-width: 0; min-height: 58px; flex: 1; justify-content: flex-start; border: 1px solid #e6f1ef; border-radius: 12px; padding: 7px; white-space: normal; }
+.merchant-registration-steps .merchant-tab.active { border-color: #003366; background: #f4f8f9; box-shadow: inset 0 0 0 1px #003366; }
+.merchant-step-number { display: grid; width: 25px; height: 25px; flex: none; place-items: center; border-radius: 50%; background: #e6f1ef; color: #003366; font-size: 12px; font-weight: 700; }
+.merchant-registration-steps .active .merchant-step-number { background: #003366; color: #fff; }
+.merchant-step-copy { display: grid; min-width: 0; gap: 1px; }
+.merchant-step-copy small { color: var(--mut); font-size: 9px; line-height: 1.1; }
+.merchant-step-copy strong { overflow: hidden; color: var(--ink); font-size: 12px; line-height: 1.15; text-overflow: ellipsis; }
 .merchant-tab:hover { color: var(--ink); }
 .merchant-tab.active { border-bottom-color: var(--ac); color: var(--ink); }
 .tab-count { border-radius: 99px; padding: 1px 7px; background: #f4f8f9; color: #00836c; font-size: 12px; }
 .merchant-panel { max-width: 760px; min-height: 290px; margin: 0 auto; padding: 20px clamp(18px, 4vw, 38px) 30px; }
 .merchant-panel[hidden] { display: none; }
+.registration-panel-heading { margin: 0 0 19px; }
+.registration-panel-heading .auth-eyebrow { margin-bottom: 5px; }
+.registration-panel-heading h2 { margin: 0 0 5px; color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 23px; font-weight: 600; }
+.registration-panel-heading > p:last-child { margin: 0; color: var(--mut); font-size: 14px; }
+.hours-details { margin-top: 21px; border: 1px solid #e6f1ef; border-radius: 12px; padding: 12px; background: #fafcfc; }
+.hours-details > summary { color: var(--ink); cursor: pointer; font-weight: 600; }
+.hours-details[open] > summary { margin-bottom: 13px; }
+.hours-details .hours-heading { margin-top: 8px; }
+.merchant-registration-dock { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 760px; margin: -18px auto 34px; border: 1px solid #e6f1ef; border-radius: 15px; padding: 12px 16px; background: #fff; box-shadow: 0 6px 20px rgb(0 51 102 / 7%); }
+.registration-dock-label { color: var(--mut); font-size: 13px; font-weight: 600; }
+.registration-dock-actions { display: flex; align-items: center; gap: 8px; }
+.registration-dock-actions .btn { min-height: 42px; }
+.registration-login-link { margin-left: 4px; color: var(--ink); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.registration-login-link:hover { text-decoration: underline; }
+.merchant-registration-dock [hidden] { display: none; }
+.registration-remember { margin-top: 18px; }
+.registration-photo-error { margin: 8px 0 0; }
+.registration-photo-error:empty { display: none; }
 .panel-intro { margin-bottom: 14px; color: var(--mut); font-size: 14px; }
 .label-hint { color: var(--mut); font-size: 12px; font-weight: 400; }
 .merchant-location-row { align-items: end; }
@@ -232,7 +258,23 @@ input:focus, select:focus, textarea:focus { border-color: #00836c; box-shadow: 0
   .merchant-form-card { margin-inline: -4px; }
   .merchant-tabs { padding-inline: 8px; }
   .merchant-tab { min-height: 46px; padding-inline: 10px; font-size: 13px; }
+  .merchant-registration-steps { gap: 6px; padding: 10px 8px; }
+  .merchant-registration-steps .merchant-tab { min-height: 58px; gap: 5px; padding: 6px 5px; }
+  .merchant-step-number { width: 23px; height: 23px; font-size: 11px; }
+  .merchant-step-copy strong { font-size: 11px; }
   .merchant-panel { min-height: 260px; padding-block: 17px 24px; }
+  .registration-panel-heading { margin-bottom: 15px; }
+  .registration-panel-heading h2 { font-size: 21px; }
+  .hours-details { padding: 11px; }
+  .merchant-registration-dock { position: fixed; z-index: 20; right: 10px; bottom: calc(68px + env(safe-area-inset-bottom)); left: 10px; display: grid; gap: 8px; margin: 0; border-radius: 14px; padding: 10px 12px; box-shadow: 0 8px 24px rgb(0 51 102 / 18%); }
+  .registration-dock-label { font-size: 12px; }
+  .registration-dock-actions { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
+  .registration-dock-actions .btn { min-height: 44px; padding-inline: 12px; }
+  .registration-dock-actions #registration-next, .registration-dock-actions #save-business { width: 100%; }
+  .registration-dock-actions #preview-business { grid-column: 1; grid-row: 2; }
+  .registration-dock-actions #save-business { grid-column: 2; grid-row: 2; }
+  .registration-login-link { grid-column: 1 / -1; margin: 0; padding: 3px 0 1px; text-align: center; }
+  main#app:has(.merchant-registration-dock) { padding-bottom: 170px; }
   .merchant-location-row { flex-direction: column; align-items: stretch; }
   .merchant-form-footer { flex-direction: column; align-items: stretch; }
   .merchant-form-footer .btns { flex-direction: column; align-items: stretch; }
