@@ -530,24 +530,28 @@ main#app { min-height: calc(100dvh - 170px); padding-top: 4px; padding-bottom: 2
 .listing-filters label { min-width: 120px; }
 .listing-section:has(.discover-card) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 17px; }
 .listing-section:has(.discover-card) > .section-heading, .listing-section:has(.discover-card) > .empty { grid-column: 1 / -1; }
-.listing-section .business-card.discover-card { position: relative; display: block; min-width: 0; min-height: 0; margin: 0; overflow: hidden; border: 1px solid #eae7e0; border-radius: 19px; padding: 8px; background: #fff; box-shadow: 0 5px 18px rgb(0 51 102 / 4%); transition: transform 220ms, box-shadow 220ms, border-color 220ms; }
+.listing-section .business-card.discover-card { position: relative; display: block; width: 100%; height: 320px; min-width: 0; min-height: 0; margin: 0; overflow: hidden; border: 0; border-radius: 19px; padding: 0; background: #173c42; box-shadow: 0 5px 18px rgb(0 51 102 / 9%); transition: transform 220ms, box-shadow 220ms, border-color 220ms; }
 .listing-section .business-card.discover-card:hover { transform: translateY(-4px); border-color: #ded9cf; box-shadow: 0 16px 35px rgb(0 51 102 / 11%); }
-.discover-card .business-card-main { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.listing-section .discover-card .business-card-main { position: relative; display: block; height: 100%; }
 .discover-photo-wrap { position: relative; display: block; height: clamp(170px, 19vw, 230px); overflow: hidden; border-radius: 13px; background: linear-gradient(135deg, #e6f1ef, #e7d3bf); }
-.discover-photo-wrap .business-thumb { display: block; width: 100%; height: 100%; border-radius: 0; object-fit: cover; transition: transform 450ms cubic-bezier(.2,.7,.2,1); }
+.listing-section .discover-card .discover-photo-wrap { position: absolute; inset: 0; height: 100%; border-radius: inherit; background: #173c42; }
+.listing-section .discover-card .discover-photo-wrap > .business-thumb { position: absolute; inset: 0; display: block; width: 100%; height: 100%; flex: none; border-radius: 0; object-fit: cover; transition: transform 450ms cubic-bezier(.2,.7,.2,1); }
 .discover-card:hover .discover-photo-wrap .business-thumb { transform: scale(1.04); }
 .discover-photo-wrap .thumb-placeholder { display: grid; place-items: center; background: radial-gradient(circle at 74% 22%, #f4d8ad, transparent 31%), linear-gradient(140deg, #e6f1ef, #cfe3e0); color: #00836c; font-family: Georgia, serif; font-size: 65px; }
-.discover-photo-shade { position: absolute; inset: 35% 0 0; background: linear-gradient(transparent, rgb(17 28 21 / 43%)); pointer-events: none; }
+.listing-section .discover-card .discover-photo-shade { inset: 0; background: linear-gradient(0deg, rgb(8 25 36 / 88%), rgb(8 25 36 / 38%) 56%, rgb(8 25 36 / 4%)); }
 .discover-photo-area { position: absolute; bottom: 12px; left: 12px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgb(255 255 255 / 40%); border-radius: 99px; padding: 5px 10px; background: rgb(24 35 29 / 42%); color: #fff; font-size: 11px; backdrop-filter: blur(8px); }
+.listing-section .discover-card .discover-photo-area { top: 12px; right: 56px; bottom: auto; left: 12px; width: fit-content; }
 .discover-photo-area .ic { width: 13px; height: 13px; }
-.discover-card .business-content { padding: 13px 8px 8px; }
-.discover-card .business-content h3 { overflow: hidden; color: #003366; font-family: Georgia, "Times New Roman", serif; font-size: 19px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.discover-card .business-content .meta { margin-top: 3px; color: #7b8179; font-size: 12px; }
-.discover-card .business-meta-line { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 8px; }
-.discover-card .business-meta-line > span { border-radius: 99px; padding: 3px 8px; background: #f4f8f9; color: #00836c; font-size: 11px; }
+.listing-section .discover-card .business-content { position: absolute; inset: auto 48px 14px 14px; min-width: 0; overflow: hidden; padding: 0; color: #fff; }
+.listing-section .discover-card .business-content h3 { display: -webkit-box; overflow: hidden; color: #fff; font-family: Georgia, "Times New Roman", serif; font-size: 20px; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.listing-section .discover-card .business-content .meta { overflow: hidden; margin-top: 3px; color: rgb(255 255 255 / 84%); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.listing-section .discover-card .business-meta-line { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 6px; }
+.listing-section .discover-card .business-meta-line > span { border-radius: 99px; padding: 3px 8px; background: rgb(255 255 255 / 18%); color: #fff; font-size: 11px; }
 .discover-card .business-meta-line > span:first-child { background: #f4f8f9; color: #00836c; }
-.discover-card .tag { margin-top: 2px; background: #faf6f0; color: #8d674a; font-size: 11px; }
-.discover-card .save-toggle { position: absolute; z-index: 2; top: 17px; right: 17px; width: 39px; height: 39px; border: 1px solid rgb(255 255 255 / 65%); background: rgb(255 255 255 / 90%); box-shadow: 0 3px 12px rgb(0 0 0 / 13%); backdrop-filter: blur(8px); }
+.listing-section .discover-card .business-meta-line > span:first-child { background: rgb(255 255 255 / 18%); color: #fff; }
+.listing-section .discover-card .business-content .tag { margin-top: 2px; background: rgb(255 255 255 / 18%); color: #fff; font-size: 11px; }
+.listing-section .discover-card .business-content > div:last-child { overflow: hidden; max-height: 29px; }
+.listing-section .discover-card .save-toggle { position: absolute; z-index: 2; top: 12px; right: 12px; width: 39px; height: 39px; border: 1px solid rgb(255 255 255 / 65%); background: rgb(255 255 255 / 90%); box-shadow: 0 3px 12px rgb(0 0 0 / 13%); backdrop-filter: blur(8px); }
 .bottom { border-top-color: #e6f1ef; box-shadow: 0 -8px 24px rgb(0 51 102 / 6%); background: rgb(255 255 255 / 94%); backdrop-filter: blur(14px); }
 .bottom a { min-height: 62px; font-size: 12px; }
 .bottom a.on { color: #003366; }
@@ -592,16 +596,16 @@ main#app { min-height: calc(100dvh - 170px); padding-top: 4px; padding-bottom: 2
   .listing-filters { position: static; gap: 7px; border-radius: 15px; margin: 12px 0 19px; }
   .listing-filters label { min-width: calc(50% - 8px); }
   .listing-section:has(.discover-card) { gap: 10px; }
-  .listing-section .business-card.discover-card { padding: 5px; border-radius: 15px; }
-  .discover-photo-wrap { height: clamp(126px, 42vw, 190px); border-radius: 11px; }
-  .discover-photo-area { bottom: 8px; left: 8px; padding: 4px 7px; font-size: 10px; }
-  .discover-card .business-content { padding: 9px 5px 6px; }
-  .discover-card .business-content h3 { font-size: 16px; }
-  .discover-card .business-content .meta { font-size: 10px; }
-  .discover-card .business-meta-line { gap: 4px; margin: 7px 0 5px; }
-  .discover-card .business-meta-line > span { padding: 3px 6px; font-size: 9px; }
-  .discover-card .tag { margin-right: 2px; padding-inline: 7px; font-size: 9px; }
-  .discover-card .save-toggle { top: 10px; right: 10px; width: 34px; height: 34px; }
+  .listing-section .business-card.discover-card { height: 300px; padding: 0; border-radius: 17px; }
+  .listing-section .discover-card .discover-photo-wrap { border-radius: inherit; }
+  .listing-section .discover-card .discover-photo-area { top: 10px; left: 10px; padding: 4px 7px; font-size: 10px; }
+  .listing-section .discover-card .business-content { inset: auto 44px 12px 12px; }
+  .listing-section .discover-card .business-content h3 { font-size: 18px; }
+  .listing-section .discover-card .business-content .meta { font-size: 10px; }
+  .listing-section .discover-card .business-meta-line { gap: 4px; margin: 7px 0 5px; }
+  .listing-section .discover-card .business-meta-line > span { padding: 3px 6px; font-size: 9px; }
+  .listing-section .discover-card .business-content .tag { margin-right: 2px; padding-inline: 7px; font-size: 9px; }
+  .listing-section .discover-card .save-toggle { top: 10px; right: 10px; width: 34px; height: 34px; }
 }
 @media (max-width: 370px) {
   .home-hero { grid-template-columns: minmax(0, 1fr) 88px; padding-inline: 15px; }
@@ -641,13 +645,20 @@ main#app { min-height: calc(100dvh - 170px); padding-top: 4px; padding-bottom: 2
 .rail-link { color: #00836c; font-size: 13px; font-weight: 600; text-decoration: none; }
 .rail-link:hover { color: #a86737; }
 .business-rail { gap: 13px; }
-.business-rail > .business-card.discover-card { display: block; width: 250px; min-width: 250px; min-height: 0; margin: 0; overflow: hidden; border: 1px solid #eae7e0; border-radius: 18px; padding: 7px; background: #fff; box-shadow: 0 5px 18px rgb(0 51 102 / 6%); scroll-snap-align: start; }
-.business-rail .discover-card .business-card-main { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
-.business-rail .discover-photo-wrap { height: 162px; }
-.business-rail .discover-card .business-content { padding: 10px 6px 6px; }
-.business-rail .discover-card .business-content h3 { font-size: 17px; }
-.business-rail .discover-card .business-meta-line > span { font-size: 10px; }
-.business-rail .discover-card .save-toggle { top: 14px; right: 14px; }
+.business-rail > .business-card.discover-card { position: relative; display: block; width: 360px; min-width: 360px; height: 210px; min-height: 0; margin: 0; overflow: hidden; border: 0; border-radius: 18px; padding: 0; background: #173c42; box-shadow: 0 5px 18px rgb(0 51 102 / 9%); scroll-snap-align: start; }
+.business-rail .discover-card .business-card-main { position: relative; display: block; height: 100%; }
+.business-rail .discover-photo-wrap { position: absolute; inset: 0; height: 100%; border-radius: 18px; background: #173c42; }
+.business-rail .discover-photo-wrap .business-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.business-rail .discover-photo-shade { inset: 0; background: linear-gradient(90deg, rgb(8 25 36 / 83%), rgb(8 25 36 / 48%) 58%, rgb(8 25 36 / 15%)), linear-gradient(0deg, rgb(8 25 36 / 34%), transparent 58%); }
+.business-rail .discover-photo-area { top: 12px; bottom: auto; left: 12px; border-color: rgb(255 255 255 / 28%); background: rgb(8 25 36 / 48%); }
+.business-rail .discover-card .business-content { position: absolute; inset: auto 48px 12px 14px; min-width: 0; overflow: hidden; padding: 0; color: #fff; }
+.business-rail .discover-card .business-content h3 { display: -webkit-box; overflow: hidden; color: #fff; font-size: 19px; line-height: 1.25; text-overflow: ellipsis; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.business-rail .discover-card .business-content .meta { overflow: hidden; color: rgb(255 255 255 / 84%); text-overflow: ellipsis; white-space: nowrap; }
+.business-rail .discover-card .business-meta-line { gap: 4px; margin: 7px 0 5px; }
+.business-rail .discover-card .business-meta-line > span { overflow: hidden; background: rgb(255 255 255 / 18%); color: #fff; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.business-rail .discover-card .business-content .tag { background: rgb(255 255 255 / 16%); color: #fff; }
+.business-rail .discover-card .business-content > div:last-child { overflow: hidden; max-height: 27px; white-space: nowrap; }
+.business-rail .discover-card .save-toggle { top: 12px; right: 12px; }
 .business-detail-page { max-width: 1020px; margin: 0 auto; padding-bottom: 26px; }
 .business-detail-page .detail-toolbar { margin-top: 12px; }
 .business-detail-page .detail-gallery-shell { margin: 8px 0 0; }
@@ -1040,8 +1051,10 @@ main#app { min-height: calc(100dvh - 170px); padding-top: 4px; padding-bottom: 2
   .spotlight-banner { width: 78vw; min-width: 78vw; height: 190px; border-radius: 17px; }
   .spotlight-copy { right: 15px; bottom: 14px; left: 15px; }
   .spotlight-copy strong { font-size: 23px; }
-  .business-rail > .business-card.discover-card { width: 205px; min-width: 205px; }
-  .business-rail .discover-photo-wrap { height: 145px; }
+  .business-rail > .business-card.discover-card { width: 300px; min-width: 300px; height: 180px; }
+  .business-rail .discover-card .business-content { inset: auto 42px 10px 12px; }
+  .business-rail .discover-card .business-content h3 { font-size: 17px; }
+  .business-rail .discover-photo-area { right: 5px; bottom: 7px; left: 5px; justify-content: center; padding: 4px 6px; font-size: 9px; }
 }
 .merchant-pin-page > .merchant-auth-top { margin-bottom: 17px; }
 .merchant-pin-page > h1 { margin: 5px 0 8px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(34px, 6vw, 47px); font-weight: 500; letter-spacing: -1.2px; }

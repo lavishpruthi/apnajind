@@ -1,7 +1,12 @@
 export function bindPinInputs(root) {
   root.querySelectorAll(".pin-code-input").forEach((input) => {
-    const wrapper = input.closest(".pin-input-wrap");
-    if (!wrapper) return;
+    let wrapper = input.closest(".pin-input-wrap");
+    if (!wrapper) {
+      wrapper = document.createElement("div");
+      wrapper.className = "pin-input-wrap";
+      input.before(wrapper);
+      wrapper.append(input);
+    }
 
     wrapper.setAttribute("role", "group");
     wrapper.setAttribute("aria-label", input.getAttribute("aria-label") || "PIN");

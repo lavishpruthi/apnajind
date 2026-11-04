@@ -54,7 +54,8 @@ export class HomeView extends BaseView {
     const geo = this.readGeo();
     const categories = CodeService.list("CATEGORY");
     const areas = CodeService.list("AREA");
-    let businesses = await BusinessService.list();
+    const directoryBusinesses = await BusinessService.list();
+    let businesses = [...directoryBusinesses];
     const [offers, events] = await Promise.all([
       DiscoveryService.offers().catch(() => []),
       DiscoveryService.events().catch(() => []),
@@ -106,7 +107,7 @@ export class HomeView extends BaseView {
       : "";
     const jindNeighborhoods = !selectedCategory && !term
       ? `<section class="jind-neighborhoods"><div class="section-heading"><div><p class="section-kicker">YOUR SIDE OF JIND</p><h2>Explore by neighbourhood</h2></div><p>Find a good spot close to your route.</p></div><div class="neighborhood-rail">${areas.slice(0, 8).map((area, index) => {
-          const count = businesses.filter((business) => business.area === area.code).length;
+          const count = directoryBusinesses.filter((business) => business.area === area.code).length;
           return `<a class="neighborhood-card neighborhood-tone-${index % 4}" href="#/?area=${encodeURIComponent(area.code)}"><span class="neighborhood-index">0${index + 1}</span><strong>${esc(area.description)}</strong><span>${count} ${count === 1 ? "place" : "places"} <b aria-hidden="true">↗</b></span></a>`;
         }).join("")}</div></section>`
       : "";
@@ -127,9 +128,6 @@ export class HomeView extends BaseView {
           return `<a class="spotlight-banner spotlight-tone-${index % 4}" href="#/c/${encodeURIComponent(category.code)}" aria-label="Explore ${esc(category.description)} businesses">${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : `<span class="spotlight-art" aria-hidden="true">${icon(metaValue(category.meta, "icon") || "list")}</span>`}<span class="spotlight-shade"></span><span class="spotlight-copy"><span class="spotlight-kicker">${count} ${count === 1 ? "LOCAL FIND" : "LOCAL FINDS"}</span><strong>${esc(category.description)}</strong><span class="spotlight-cta">Explore category <b aria-hidden="true">↗</b></span></span></a>`;
         }).join("")}</div></section>`
       : "";
-    const localPicks = !selectedCategory && !term && businesses.length
-      ? `<section class="local-picks"><div class="section-heading"><div><p class="section-kicker">FEATURED &amp; VERIFIED IN JIND</p><h2>Businesses worth knowing</h2></div><a class="rail-link" href="#listing-start">See all <span aria-hidden="true">→</span></a></div><div class="business-rail">${businesses.slice(0, 8).map((business) => this.card(business, geo)).join("")}</div></section>`
-      : "";
     const promotionCta = !selectedCategory && !term && SessionStore.read("apnajind_merchant_token")
       ? `<section class="home-promotion-cta"><span class="promotion-cta-icon">${icon("store")}</span><div><p class="section-kicker">FOR JIND BUSINESSES</p><h2>Ready to reach more local customers?</h2><p>Ask about featured listings, category spotlights and sponsored banners.</p></div><a class="btn ac" href="#/promote">Promote your business <span aria-hidden="true">→</span></a></section>`
       : "";
@@ -147,8 +145,6 @@ export class HomeView extends BaseView {
         ? '<p class="network-notice" role="status">Showing listings saved on this device.</p>'
         : "";
 
-    const featuredBusiness = !selectedCategory && !term ? businesses.find((item) => item.photos?.some((photo) => safeImageSrc(photo))) : null;
-    const featuredPhoto = featuredBusiness ? safeImageSrc(featuredBusiness.photos?.find((photo) => safeImageSrc(photo))) : "";
     const slide = (tone, href, kicker, heading, sub, cta, photo, art) =>
       `<a class="banner-slide banner-tone-${tone}" href="${href}">${photo ? `<img src="${esc(photo)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : `<span class="banner-art" aria-hidden="true">${icon(art)}</span>`}<span class="banner-shade"></span><span class="banner-copy"><span class="banner-kicker">${kicker}</span><strong>${heading}</strong>${sub ? `<span class="banner-sub">${sub}</span>` : ""}<span class="banner-cta">${cta} <b aria-hidden="true">→</b></span></span></a>`;
     const extraSlides = [];
@@ -161,11 +157,18 @@ export class HomeView extends BaseView {
     });
     extraSlides.push(slide(2, "#/promote", "FOR JIND BUSINESSES", "Reach more local customers", "Featured listings and sponsored banners", "Promote your business", "", "store"));
     this.html = `${savedCopyNotice}${!selectedCategory && !term
-      ? `<section class="banner-slider" aria-roledescription="carousel" aria-label="Highlights"><div class="banner-track"><section class="home-hero banner-slide ${featuredPhoto ? "has-feature-photo" : ""}"><div class="hero-copy"><p class="hero-kicker"><span class="hero-live-dot"></span> YOUR TOWN, YOUR FINDS</p><h1>Good places.<br><em>Closer to home.</em></h1><p class="intro">Discover the people and places that make Jind feel like yours.</p><div class="hero-actions"><button class="hero-explore" type="button" data-scroll-target="listing-start">Explore local <span aria-hidden="true">↓</span></button><a class="hero-map-link" href="#/map">Find on map ${icon("pin")}</a><a class="hero-map-link" href="#/events">Jind events ${icon("calendar")}</a></div></div>${featuredBusiness ? `<a class="hero-feature" href="#/b/${encodeURIComponent(featuredBusiness.id)}" aria-label="Discover ${esc(featuredBusiness.name)}"><span class="hero-feature-photo">${featuredPhoto ? `<img src="${esc(featuredPhoto)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">` : ""}</span><span class="hero-feature-label"><span class="hero-feature-kicker">A local favourite</span><strong>${esc(featuredBusiness.name)}</strong><span>${esc(featuredBusiness.area || "Jind")} <span aria-hidden="true">↗</span></span></span></a>` : `<div class="hero-art" aria-hidden="true"><span class="hero-art-orbit orbit-one"></span><span class="hero-art-orbit orbit-two"></span><span class="hero-art-sun"></span><span class="hero-art-word">अपना<br>JIND</span></div>`}</section>${extraSlides.join("")}</div><div class="banner-dots" role="tablist" aria-label="Choose slide"></div></section>`
+      ? `<section class="banner-slider" aria-roledescription="carousel" aria-label="Highlights"><div class="banner-track"><section class="home-hero banner-slide"><div class="hero-copy"><p class="hero-kicker"><span class="hero-live-dot"></span> YOUR TOWN, YOUR FINDS</p><h1>Good places.<br><em>Closer to home.</em></h1><p class="intro">Discover the people and places that make Jind feel like yours.</p><div class="hero-actions"><button class="hero-explore" type="button" data-scroll-target="listing-start">Explore local <span aria-hidden="true">↓</span></button><a class="hero-map-link" href="#/map">Find on map ${icon("pin")}</a><a class="hero-map-link" href="#/events">Jind events ${icon("calendar")}</a></div></div><div class="hero-art" aria-hidden="true"><span class="hero-art-orbit orbit-one"></span><span class="hero-art-orbit orbit-two"></span><span class="hero-art-sun"></span><span class="hero-art-word">अपना<br>JIND</span></div></section>${extraSlides.join("")}</div><div class="banner-dots" role="tablist" aria-label="Choose slide"></div></section>`
       : `<h1>${title}</h1><p class="intro">Shops, food, doctors, tutors and services near you</p>`}
-      ${categoryCards}${jindSpots}${dealRail}${eventRail}${jindNeighborhoods}${categoryBanners}${localPicks}${promotionCta}${filters}<section class="listing-section" id="listing-start"><div class="section-heading"><div><p class="section-kicker">${selectedCategory || term || hasActiveFilter ? "YOUR SEARCH" : "MADE FOR JIND"}</p><h2>${selectedCategory || term || hasActiveFilter ? "Businesses" : "Worth a visit"}</h2></div>${!selectedCategory && !term && !hasActiveFilter ? '<p>Good people. Great places. Right here.</p>' : ''}</div>
+      ${categoryCards}${jindSpots}${dealRail}${eventRail}${jindNeighborhoods}${categoryBanners}${promotionCta}${filters}<section class="listing-section" id="listing-start"><div class="section-heading"><div><p class="section-kicker">${selectedCategory || term || hasActiveFilter ? "YOUR SEARCH" : "MADE FOR JIND"}</p><h2>${selectedCategory || term || hasActiveFilter ? "Businesses" : "Worth a visit"}</h2></div>${!selectedCategory && !term && !hasActiveFilter ? '<p>Good people. Great places. Right here.</p>' : ''}</div>
       ${visible.length ? visible.map((business) => this.card(business, geo)).join("") : `<div class="empty"><h2>${Locale.t("noResults")}</h2><p>${Locale.t("suggestions")}</p><a class="btn ghost" href="${term ? `#/s/${encodeURIComponent(this.routeValue)}` : "#/"}">${Locale.t("clear")}</a><div class="empty-suggestions"><strong>Browse categories</strong><div>${categories.slice(0, 6).map((item) => `<a class="tag" href="#/c/${encodeURIComponent(item.code)}">${esc(item.description)}</a>`).join("")}</div><strong>Explore areas</strong><div>${areas.slice(0, 6).map((item) => `<a class="tag" href="#/?area=${encodeURIComponent(item.code)}">${esc(item.description)}</a>`).join("")}</div></div></div>`}`;
     this.host.innerHTML += '</section>';
+    if (areaFilter !== "all")
+      requestAnimationFrame(() =>
+        this.$("#listing-start")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        }),
+      );
     this.initBanners();
     this.$("[data-scroll-target]")?.addEventListener("click", () => this.$(`#${this.$("[data-scroll-target]").dataset.scrollTarget}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
     this.host.querySelectorAll("[data-copy-offer]").forEach((button) => button.addEventListener("click", async () => {
