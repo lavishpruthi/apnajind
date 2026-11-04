@@ -32,6 +32,8 @@ export class Router {
     this.currentView = null;
     const [rawPath] = (location.hash.slice(1) || "/").split("?");
     const path = rawPath.replace(/^\/+|\/+$/g, "");
+    const searchForm = document.querySelector("#searchForm");
+    if (searchForm) searchForm.hidden = path.startsWith("auth") || path === "merchant/login";
     if (path === "" || path === "food" || path.startsWith("c/") || path.startsWith("s/"))
       this.lastBrowseHash = location.hash || "#/";
     document.title = "ApnaJind – Jind ka apna directory";

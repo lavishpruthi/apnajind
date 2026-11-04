@@ -393,6 +393,13 @@ input:focus, select:focus, textarea:focus { border-color: #00836c; box-shadow: 0
 .tag { display: inline-block; margin: 3px 4px 2px 0; border-radius: 4px; padding: 1px 7px; background: #e6f1ef; color: #00836c; font-size: 12px; }
 .chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1.5px solid var(--ink); border-radius: 99px; cursor: pointer; text-decoration: none; white-space: nowrap; background: #fff; min-height: 36px; border-width: 1px; border-color: #e6f1ef; padding: 5px 12px; color: var(--tx); }
 .chip.on { border-color: var(--ink); background: var(--ink); color: #fff; }
+.admin-count-badge { display: inline-grid; min-width: 20px; height: 20px; place-items: center; border-radius: 99px; padding: 0 6px; background: #b44437; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; }
+.admin-pending-notice, .admin-pending-error { margin: 12px 0; border: 1px solid #e8c98c; border-radius: 12px; padding: 11px 14px; background: #fff8e8; color: #6f4a19; font-size: 14px; }
+.admin-pending-notice a { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; color: #003366; font-weight: 700; text-decoration: none; }
+.admin-pending-notice a:hover { text-decoration: underline; }
+.admin-pending-notice .ic { width: 15px; height: 15px; }
+.admin-pending-error { border-color: #e3b9b2; background: #fff5f3; color: #8d4439; }
+.admin-pending-notice[hidden], .admin-pending-error[hidden] { display: none; }
 .box { margin: 10px 0; border: 1px solid var(--ln); background: var(--sf); padding: 19px; border-color: var(--ln); border-radius: 9px; box-shadow: 0 1px 2px rgb(22 35 55 / 3%); }
 .btn { border-radius: 7px; transition: filter var(--t), background-color var(--t); }
 .btn:hover:not(:disabled) { filter: brightness(0.96); }
@@ -805,6 +812,8 @@ main#app { min-height: calc(100dvh - 170px); padding-top: 4px; padding-bottom: 2
 }
 .auth-unified { margin-top: clamp(20px, 5vh, 46px); max-width: 1180px; margin: 18px auto 36px; }
 .auth-stage { display: grid; grid-template-columns: minmax(310px, .9fr) minmax(0, 1.1fr); align-items: stretch; gap: clamp(22px, 4vw, 48px); }
+.auth-stage-signin { grid-template-columns: minmax(0, 680px); justify-content: center; }
+.auth-stage-signin .auth-local-showcase { display: none; }
 .auth-local-showcase { position: relative; display: flex; min-height: 620px; flex-direction: column; overflow: hidden; border: 1px solid rgb(255 255 255 / 18%); border-radius: 28px; padding: clamp(22px, 3vw, 34px); background: radial-gradient(circle at 70% 29%, rgb(231 182 102 / 27%), transparent 24%), radial-gradient(circle at 5% 90%, rgb(96 139 100 / 33%), transparent 34%), linear-gradient(150deg, #003366 0%, #003366 54%, #003366 100%); color: #fff; box-shadow: 0 24px 60px rgb(20 51 38 / 20%); isolation: isolate; }
 .auth-local-showcase::before { position: absolute; z-index: -1; top: -110px; right: -150px; width: 430px; height: 430px; border: 1px solid rgb(247 231 197 / 20%); border-radius: 50%; box-shadow: 0 0 0 34px rgb(247 231 197 / 4%), 0 0 0 76px rgb(247 231 197 / 3%); content: ""; }
 .auth-town-stamp { z-index: 1; align-self: flex-start; border: 1px solid rgb(255 255 255 / 25%); border-radius: 99px; padding: 7px 12px; color: #f2dbad; font-size: 10px; font-weight: 700; letter-spacing: .16em; }
@@ -849,34 +858,31 @@ main#app { min-height: calc(100dvh - 170px); padding-top: 4px; padding-bottom: 2
 @media (max-width: 820px) {
   .auth-unified { max-width: 590px; margin-top: 12px; }
   .auth-stage { grid-template-columns: 1fr; gap: 22px; }
-  .auth-local-showcase { min-height: 335px; border-radius: 23px; padding: 20px; }
-  .auth-local-art { top: 15px; right: -25px; width: 55%; height: 265px; }
-  .auth-art-orbit { right: 12%; width: 190px; height: 190px; }
-  .auth-art-orbit-b { right: 0; width: 240px; height: 240px; }
-  .auth-art-sun { top: 57px; right: 18%; width: 112px; height: 112px; }
-  .auth-building-one { right: 10%; height: 81px; }
-  .auth-building-two { right: 34%; height: 105px; }
-  .auth-building-three { height: 65px; }
-  .auth-art-pin { top: 78px; right: 31%; width: 37px; height: 37px; }
-  .auth-floating-tile { width: 36px; height: 36px; border-radius: 12px; }
-  .auth-tile-food { top: 47px; right: 5%; }
-  .auth-tile-shop { top: 155px; right: 2%; }
-  .auth-tile-heart { top: 173px; right: 48%; width: 32px; height: 32px; }
-  .auth-local-copy { max-width: 58%; padding-top: 80px; }
-  .auth-local-title { font-size: 38px; }
-  .auth-local-description { margin-top: 8px; font-size: 12px; }
-  .auth-area-tags { gap: 5px; margin-top: 11px; }
-  .auth-area-tags span { font-size: 9px; }
-  .auth-local-footer { margin-top: 16px; }
+  .auth-local-showcase { min-height: 180px; border-radius: 20px; padding: 15px 18px; }
+  .auth-local-art { top: 0; right: -5%; width: 58%; height: 100%; }
+  .auth-art-orbit { top: 12px; right: 8%; width: 150px; height: 150px; }
+  .auth-art-orbit-b { top: -5px; right: 0; width: 185px; height: 185px; }
+  .auth-art-sun { top: 33px; right: 18%; width: 82px; height: 82px; }
+  .auth-building-one { right: 10%; height: 54px; }
+  .auth-building-two { right: 34%; height: 70px; }
+  .auth-building-three { height: 45px; }
+  .auth-art-pin { top: 51px; right: 31%; width: 31px; height: 31px; }
+  .auth-floating-tile { width: 30px; height: 30px; border-radius: 10px; }
+  .auth-tile-food { top: 21px; right: 5%; }
+  .auth-tile-shop { top: 96px; right: 2%; }
+  .auth-tile-heart { top: 105px; right: 48%; width: 27px; height: 27px; }
+  .auth-local-copy { max-width: 61%; padding-top: 25px; }
+  .auth-local-script { margin-bottom: -4px; font-size: 15px; }
+  .auth-local-title { font-size: clamp(26px, 7vw, 34px); }
+  .auth-local-description, .auth-area-tags, .auth-local-footer { display: none; }
 }
 @media (max-width: 420px) {
   .auth-unified .auth-role-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
   .auth-unified .auth-role-tabs [role="tab"] { min-height: 84px; padding: 8px; }
   .auth-unified .auth-role-tabs [role="tab"] > span { font-size: 13px; }
   .auth-unified .auth-role-tabs [role="tab"] small { font-size: 10px; }
-  .auth-local-showcase { min-height: 325px; }
-  .auth-local-copy { max-width: 63%; }
-  .auth-area-tags span:last-child { display: none; }
+  .auth-local-showcase { min-height: 170px; }
+  .auth-local-copy { max-width: 61%; }
 }
 .jind-spots-section { margin: 2px 0 35px; }
 .jind-spots-rail { display: flex; gap: 14px; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 14px; scrollbar-width: none; scroll-snap-type: x mandatory; }

@@ -420,7 +420,6 @@ export class MerchantView extends BaseView {
   updateRegistrationProgress() {
     if (!this.isRegistration) return;
     const steps = ["business", "location", "attachments"];
-    const labels = ["Business details", "Location & contact", "Photos"];
     const index = steps.indexOf(this.activeRegistrationStep);
     const percent = Math.round(((index + 1) / steps.length) * 100);
     const label = this.$("#registration-progress-label");

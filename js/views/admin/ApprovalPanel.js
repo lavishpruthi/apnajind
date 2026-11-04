@@ -6,8 +6,9 @@ import { CodeService } from "../../services/CodeService.js";
 import { PinService } from "../../services/PinService.js";
 
 export class ApprovalPanel {
-  constructor(host) {
+  constructor(host, onPendingCount) {
     this.host = host;
+    this.onPendingCount = onPendingCount;
     this.host.onclick = (event) => this.handleAction(event);
   }
 
@@ -20,6 +21,7 @@ export class ApprovalPanel {
       return `<section class="admin-pin-tools"><div><strong>Merchant access</strong><p class="meta">${state}${business.pinExpiresAt ? ` · Expires ${esc(PinService.expiryLabel(business.pinExpiresAt))}` : ""}</p></div><button class="btn ghost" type="button" data-generate-pin="${esc(business.id)}">${icon("key")} Generate new PIN</button><div class="admin-pin-result" data-pin-result="${esc(business.id)}" aria-live="polite"></div></section>`;
     };
     const pending = businesses.filter((business) => business.status === "pending");
+    this.onPendingCount?.(businesses, true);
     const approved = businesses.filter((business) => business.status === "approved");
     const pendingCards = pending.map((business) => {
       const category = CodeService.byCode("CATEGORY", business.category);
