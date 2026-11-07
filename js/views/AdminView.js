@@ -7,6 +7,7 @@ import { CodeMasterPanel } from "./admin/CodeMasterPanel.js";
 import { RolePanel } from "./admin/RolePanel.js";
 import { UserPanel } from "./admin/UserPanel.js";
 import { ReportsPanel } from "./admin/ReportsPanel.js";
+import { PasswordRequestsPanel } from "./admin/PasswordRequestsPanel.js";
 import { SettingsPanel } from "./admin/SettingsPanel.js";
 import { CommunityPanel } from "./admin/CommunityPanel.js";
 import { BusinessService } from "../services/BusinessService.js";
@@ -21,6 +22,7 @@ const TABS = [
     Panel: ApprovalPanel,
   },
   { id: "reports", label: "Reports", icon: "flag", perm: "business.approve", Panel: ReportsPanel },
+  { id: "passwords", label: "Password requests", icon: "key", perm: "user.manage", Panel: PasswordRequestsPanel },
   {
     id: "codes",
     label: "Code master",

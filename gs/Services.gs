@@ -314,7 +314,51 @@ class CustomerAuthService {
       name: customer.name,
       phone: String(customer.phone),
       email: customer.email,
+      mustChangePassword: customer.pwChange === "yes",
     };
+  }
+  static resetList() {
+    const customers = {};
+    new CustomerRepo().all().forEach((c) => (customers[c.id] = c));
+    return new PasswordResetRepo()
+      .all()
+      .filter((r) => r.status === "open" && customers[r.customerId])
+      .map((r) => {
+        const c = customers[r.customerId];
+        return { id: r.id, name: c.name, phone: String(c.phone), email: c.email, created: r.created };
+      });
+  }
+  // Staff issue a temporary password; the customer must replace it at first sign-in.
+  static resetGenerate(d) {
+    const repo = new PasswordResetRepo();
+    const request = repo.find(clean_(d.id, 40));
+    if (!request || request.status !== "open") throw new AppError("Request not found.");
+    const customers = new CustomerRepo();
+    const customer = customers.find(request.customerId);
+    if (!customer) throw new AppError("Customer not found.");
+    const password = Utilities.getUuid().replace(/-/g, "").slice(0, 12).toUpperCase();
+    customers.update(customer.id, {
+      pwHash: Auth.hash(password, String(customer.email).toLowerCase()),
+      pwChange: "yes",
+    });
+    repo.update(request.id, { status: "done" });
+    return { password, name: customer.name, phone: String(customer.phone) };
+  }
+  static changePassword(d, customer) {
+    const current = String(d.current || "");
+    const next = String(d.next || "");
+    const salt = String(customer.email).toLowerCase();
+    if (Auth.hash(current, salt) !== customer.pwHash) {
+      Utilities.sleep(1000);
+      throw new AppError("Current password is wrong.");
+    }
+    if (next.length < 8) throw new AppError("Password must be at least 8 characters");
+    if (next === current) throw new AppError("Choose a different password.");
+    const updated = new CustomerRepo().update(customer.id, {
+      pwHash: Auth.hash(next, salt),
+      pwChange: "",
+    });
+    return CustomerAuthService.profile(updated);
   }
   static register(d) {
     const name = clean_(d.name, 60);

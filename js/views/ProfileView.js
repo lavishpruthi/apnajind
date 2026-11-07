@@ -25,7 +25,9 @@ export class ProfileView extends BaseView {
     const email = settings.supportEmail;
     const phone = settings.supportPhone;
     const phoneHref = String(phone || "").replace(/[^+\d]/g, "");
+    const mustChange = Boolean(profile.mustChangePassword);
     this.html = `<h1>Your profile</h1>
+      <details class="box profile-section" ${mustChange ? "open" : ""}><summary><h2>Change password</h2></summary><div>${mustChange ? '<p class="network-notice" role="status">You signed in with a temporary password. Please choose a new password now.</p>' : ""}<form id="change-password-form"><label for="current-password">${mustChange ? "Temporary password" : "Current password"}</label><input id="current-password" name="current" type="password" autocomplete="current-password" required><label for="new-password">New password</label><input id="new-password" name="next" type="password" autocomplete="new-password" minlength="8" required><div class="btns"><button class="btn ac" type="submit">Change password</button></div></form></div></details>
       <section class="box profile-card" aria-labelledby="account-info-heading">
         <div class="profile-avatar" aria-hidden="true">${esc((profile.name || "?").trim().charAt(0).toUpperCase())}</div>
         <div><h2 id="account-info-heading">Account information</h2><p class="meta">ApnaJind customer account</p></div>
@@ -48,6 +50,19 @@ export class ProfileView extends BaseView {
       </div></details>
       <details class="box profile-section profile-delete"><summary><h2>Delete my account</h2></summary><div><p>This permanently deletes your ApnaJind customer account. Enter your password and type <strong>DELETE</strong> to confirm.</p><form id="delete-account-form"><label for="delete-password">Account password</label><input id="delete-password" name="password" type="password" autocomplete="current-password" required><label for="delete-confirmation">Type DELETE to confirm</label><input id="delete-confirmation" name="confirmation" autocomplete="off" pattern="DELETE" required><div class="btns"><button class="btn no" type="submit">Delete my account</button></div></form></div></details>`;
     this.on("#delete-account-form", "submit", (event) => this.deleteAccount(event));
+    this.on("#change-password-form", "submit", (event) => this.changePassword(event));
+  }
+
+  async changePassword(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    try {
+      await CustomerService.changePassword(form.elements.current.value, form.elements.next.value);
+      Toast.show("Password changed.");
+      await this.render(); // re-render so the temporary-password notice is gone for good
+    } catch (error) { Toast.show(error.message); button.disabled = false; }
   }
 
   async renderStaffProfile() {

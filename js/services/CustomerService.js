@@ -68,6 +68,13 @@ export class CustomerService {
     return Api.request("customerResetRequest", { identity });
   }
 
+  static async changePassword(current, next) {
+    const profile = await Api.request("customerPasswordChange", { token: CustomerService.token, current, next });
+    CustomerService.profile = profile;
+    SessionStore.write(PROFILE_KEY, JSON.stringify(profile), SessionStore.persistent(TOKEN_KEY));
+    return profile;
+  }
+
   static async deleteAccount(password) {
     await Api.request("customerDelete", { token: CustomerService.token, password });
     CustomerService.logout(false);

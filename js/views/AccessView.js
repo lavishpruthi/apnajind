@@ -175,7 +175,7 @@ export class AccessView extends BaseView {
         this.$("#customer-password").value,
         this.$("#customer-remember").checked,
       );
-      location.hash = "#/";
+      location.hash = CustomerService.profile?.mustChangePassword ? "#/profile" : "#/";
     } catch (error) {
       Toast.show(error.message);
       button.disabled = false;

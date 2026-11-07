@@ -120,6 +120,12 @@ export class BusinessService {
   static adminSet(data) {
     return Api.request("bSet", { ...data, token: AuthService.token });
   }
+  static adminPasswordRequests() {
+    return Api.request("pwResetList", { token: AuthService.token });
+  }
+  static adminGeneratePassword(id) {
+    return Api.request("pwResetGenerate", { id, token: AuthService.token });
+  }
   static adminReports() {
     return Api.request("reportList", { token: AuthService.token });
   }

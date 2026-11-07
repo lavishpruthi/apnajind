@@ -7,6 +7,23 @@ export class BaseView {
 
   set html(value) {
     this.host.innerHTML = value;
+    this.host.querySelectorAll('input[type="password"]:not(.pin-code-input)').forEach((input) => {
+      const wrap = document.createElement("div");
+      wrap.className = "password-wrap";
+      input.before(wrap);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "password-toggle";
+      button.textContent = "👁";
+      button.setAttribute("aria-label", "Show password");
+      button.addEventListener("click", () => {
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        button.textContent = show ? "🙈" : "👁";
+        button.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      });
+      wrap.append(input, button);
+    });
   }
 
   get html() {

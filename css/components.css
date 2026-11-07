@@ -1219,3 +1219,8 @@ a.banner-slide img { position: absolute; inset: 0; width: 100%; height: 100%; ob
   .banner-art { top: 30%; right: 6%; }
 }
 @media (prefers-reduced-motion: reduce) { .banner-track { scroll-behavior: auto; } }
+
+/* Show/hide password button */
+.password-wrap { position: relative; }
+.password-wrap input { padding-right: 44px; }
+.password-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: 0; cursor: pointer; font-size: 1.1rem; padding: 6px; line-height: 1; }

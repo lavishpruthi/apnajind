@@ -316,9 +316,22 @@ class CustomerRepo extends Repository {
         "pwHash",
         "created",
         "updated",
+        "pwChange", // "yes" while the customer must replace an admin-issued temporary password
       ],
       "C",
       [3],
     );
+  }
+  get sheet() {
+    // Adds any missing column at the end, so existing sheets keep working.
+    const sheet = super.sheet;
+    const existing = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
+    this.headers.forEach((header) => {
+      if (!existing.includes(header)) {
+        sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header).setFontWeight("bold");
+        existing.push(header);
+      }
+    });
+    return sheet;
   }
 }
