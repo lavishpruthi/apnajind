@@ -149,39 +149,40 @@ export class MerchantView extends BaseView {
     const categories = CodeService.list("CATEGORY");
     const areas = CodeService.list("AREA");
     const value = business || {};
-    const options = (records, selected, emptyLabel) =>
+    const hi = (en, hindi) => (isNew ? `${en} / ${hindi}` : en); // Hindi shown beside English on the register page only
+    const options =(records, selected, emptyLabel) =>
       `<option value="">${emptyLabel}</option>${records
         .map(
           (record) => `
       <option value="${esc(record.code)}" ${record.code === selected ? "selected" : ""}>${esc(record.description)}</option>`,
         )
         .join("")}`;
-    this.html = `${isNew ? `<div class="merchant-auth-top"><a class="btn ghost auth-back" href="#/auth">${icon("arrow-left")} Back to sign in &amp; register</a></div>` : ""}<header class="merchant-heading"><p class="hero-kicker">${isNew ? "Join your local directory" : "Merchant dashboard"}</p><h1>${isNew ? "List your business" : esc(value.name)}</h1>
+    this.html = `${isNew ? `<div class="merchant-auth-top"><a class="btn ghost auth-back" href="#/auth">${icon("arrow-left")} Back to sign in &amp; register</a></div>` : ""}<header class="merchant-heading"><p class="hero-kicker">${isNew ? "Join your local directory / अपनी लोकल डायरेक्टरी से जुड़ें" : "Merchant dashboard"}</p><h1>${isNew ? "List your business / अपना व्यवसाय जोड़ें" : esc(value.name)}</h1>
       ${isNew ? '<p class="intro">Create a useful listing for people looking for local businesses in Jind.</p>' : `<p><span class="st ${esc(value.status)}">${esc(this.statusLabel(value.status))}</span></p>`}</header>
       <div class="box merchant-form-card"><form id="business-form" novalidate>
         <div class="listing-progress"><div><strong>${isNew ? "Registration progress" : "Listing completeness"}</strong><span id="${isNew ? "registration-progress-label" : "completeness-label"}"></span></div><div class="progress-track" role="progressbar" aria-label="${isNew ? "Registration progress" : "Listing completeness"}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="${isNew ? "registration-progress-bar" : "completeness-bar"}"></span></div></div>
         <div class="merchant-tabs${isNew ? " merchant-registration-steps" : ""}" role="tablist" aria-label="${isNew ? "Business registration steps" : "Business details"}">
-          <button class="merchant-tab active" type="button" role="tab" id="tab-business" aria-selected="true" aria-controls="panel-business" data-tab="business">${isNew ? '<span class="merchant-step-number">1</span><span class="merchant-step-copy"><small>STEP 1</small><strong>Business</strong></span>' : "Business details"}</button>
-          <button class="merchant-tab" type="button" role="tab" id="tab-location" aria-selected="false" aria-controls="panel-location" data-tab="location">${isNew ? '<span class="merchant-step-number">2</span><span class="merchant-step-copy"><small>STEP 2</small><strong>Contact</strong></span>' : "Location & contact"}</button>
-          <button class="merchant-tab" type="button" role="tab" id="tab-attachments" aria-selected="false" aria-controls="panel-attachments" data-tab="attachments">${isNew ? `<span class="merchant-step-number">3</span><span class="merchant-step-copy"><small>STEP 3</small><strong>Photos</strong></span>` : "Attachments"} <span class="tab-count">${this.photos.length}/10</span></button>
+          <button class="merchant-tab active" type="button" role="tab" id="tab-business" aria-selected="true" aria-controls="panel-business" data-tab="business">${isNew ? '<span class="merchant-step-number">1</span><span class="merchant-step-copy"><small>STEP 1</small><strong>Business / व्यवसाय</strong></span>' : "Business details"}</button>
+          <button class="merchant-tab" type="button" role="tab" id="tab-location" aria-selected="false" aria-controls="panel-location" data-tab="location">${isNew ? '<span class="merchant-step-number">2</span><span class="merchant-step-copy"><small>STEP 2</small><strong>Contact / संपर्क</strong></span>' : "Location & contact"}</button>
+          <button class="merchant-tab" type="button" role="tab" id="tab-attachments" aria-selected="false" aria-controls="panel-attachments" data-tab="attachments">${isNew ? `<span class="merchant-step-number">3</span><span class="merchant-step-copy"><small>STEP 3</small><strong>Photos / फ़ोटो</strong></span>` : "Attachments"} <span class="tab-count">${this.photos.length}/10</span></button>
         </div>
         <section class="merchant-panel" role="tabpanel" id="panel-business" aria-labelledby="tab-business" data-panel="business">
-          ${isNew ? '<div class="registration-panel-heading"><p class="auth-eyebrow">STEP 1 OF 3</p><h2>Tell us about your business</h2><p>Start with the details customers use to find you.</p></div>' : '<p class="panel-intro">Tell customers what makes your business useful to them.</p>'}
-          <label for="business-name">Business name</label><input id="business-name" maxlength="80" required value="${esc(value.name)}" placeholder="e.g. Sharma Sweets">
-          <label for="business-category">Category</label><select id="business-category" required>${options(categories, value.category, "Choose category")}</select>
-          <label for="business-description">About your business</label><textarea id="business-description" rows="4" maxlength="600" placeholder="A short introduction customers will see on your listing">${esc(value.description)}</textarea>
-          <label for="business-services">Services <span class="label-hint">Separate with commas</span></label><input id="business-services" maxlength="300" placeholder="Home delivery, catering" value="${esc((value.services || []).join(", "))}">
-          <details class="hours-details" id="hours-details" ${isNew ? "" : "open"}><summary>${isNew ? "Add opening hours (optional)" : "Weekly opening hours"}</summary><div class="hours-heading"><div><h2>Weekly opening hours</h2><p class="meta">Set each day’s hours so customers know when you’re open.</p></div><button class="btn ghost" type="button" id="copy-monday-hours">Copy Monday to all</button></div>
+          ${isNew ? '<div class="registration-panel-heading"><p class="auth-eyebrow">STEP 1 OF 3</p><h2>Tell us about your business / अपने व्यवसाय के बारे में बताएँ</h2><p>Start with the details customers use to find you. / वे जानकारी दें जिनसे ग्राहक आपको ढूँढते हैं।</p></div>' : '<p class="panel-intro">Tell customers what makes your business useful to them.</p>'}
+          <label for="business-name">${hi("Business name", "व्यवसाय का नाम")}</label><input id="business-name" maxlength="80" required value="${esc(value.name)}" placeholder="e.g. Sharma Sweets">
+          <label for="business-category">${hi("Category", "श्रेणी")}</label><select id="business-category" required>${options(categories, value.category, "Choose category")}</select>
+          <label for="business-description">${hi("About your business", "आपके व्यवसाय के बारे में")}</label><textarea id="business-description" rows="4" maxlength="600" placeholder="A short introduction customers will see on your listing">${esc(value.description)}</textarea>
+          <label for="business-services">${hi("Services", "सेवाएँ")} <span class="label-hint">${hi("Separate with commas", "कॉमा से अलग करें")}</span></label><input id="business-services" maxlength="300" placeholder="Home delivery, catering" value="${esc((value.services || []).join(", "))}">
+          <details class="hours-details" id="hours-details" ${isNew ? "" : "open"}><summary>${isNew ? "Add opening hours (optional) / खुलने का समय जोड़ें (वैकल्पिक)" : "Weekly opening hours"}</summary><div class="hours-heading"><div><h2>${hi("Weekly opening hours", "साप्ताहिक खुलने का समय")}</h2><p class="meta">${hi("Set each day’s hours so customers know when you’re open.", "हर दिन का समय भरें ताकि ग्राहक जान सकें कि आप कब खुले हैं।")}</p></div><button class="btn ghost" type="button" id="copy-monday-hours">${hi("Copy Monday to all", "सोमवार का समय सभी दिनों में लगाएँ")}</button></div>
             ${typeof value.hours === "string" && value.hours && !value.hours.trim().startsWith("{") ? `<p class="network-notice" role="status">Your existing hours are in an older format. Set your weekly schedule below to update them.</p>` : ""}
             <div class="hours-editor" id="hours-editor">${scheduleFields(value.hours)}</div>
             <div class="row merchant-info-row"><div><label for="business-availability">Availability</label><select id="business-availability"><option value="available" ${value.availability === "available" || !value.availability ? "selected" : ""}>Open for customers</option><option value="seasonal" ${value.availability === "seasonal" ? "selected" : ""}>Seasonal</option><option value="temporarily_closed" ${value.availability === "temporarily_closed" ? "selected" : ""}>Temporarily closed</option></select></div></div>
           </details>
         </section>
         <section class="merchant-panel" role="tabpanel" id="panel-location" aria-labelledby="tab-location" data-panel="location" hidden>
-          ${isNew ? '<div class="registration-panel-heading"><p class="auth-eyebrow">STEP 2 OF 3</p><h2>Where can customers find you?</h2><p>Add your address and a mobile number so customers can reach you.</p></div>' : '<p class="panel-intro">Help customers find and contact your business.</p>'}
-          <label for="business-address">Shop address</label><input id="business-address" maxlength="200" autocomplete="street-address" value="${esc(value.address)}" placeholder="Street, building or nearby landmark">
+          ${isNew ? '<div class="registration-panel-heading"><p class="auth-eyebrow">STEP 2 OF 3</p><h2>Where can customers find you? / ग्राहक आपको कहाँ ढूँढ सकते हैं?</h2><p>Add your address and a mobile number so customers can reach you. / अपना पता और मोबाइल नंबर जोड़ें ताकि ग्राहक आप तक पहुँच सकें।</p></div>' : '<p class="panel-intro">Help customers find and contact your business.</p>'}
+          <label for="business-address">${hi("Shop address", "दुकान का पता")}</label><input id="business-address" maxlength="200" autocomplete="street-address" value="${esc(value.address)}" placeholder="Street, building or nearby landmark">
           <div class="row merchant-location-row">
-            <div><label for="business-area">Area / mohalla</label><select id="business-area">${options(areas, value.area, "Select area")}</select></div>
+            <div><label for="business-area">${hi("Area / mohalla", "इलाका / मोहल्ला")}</label><select id="business-area">${options(areas, value.area, "Select area")}</select></div>
             <div class="location-control"><label>&nbsp;</label><button class="btn ghost" type="button" id="use-location">⌖ Use my location</button></div>
           </div>
           <div class="place-search"><label for="place-query">Or search for a place</label><input id="place-query" list="place-suggestions" maxlength="120" placeholder="Start typing a landmark or area" autocomplete="off" aria-describedby="location-search-status"><datalist id="place-suggestions">${areas.map((area) => `<option value="${esc(area.description)}"></option>`).join("")}</datalist><p class="location-note" id="location-search-status" role="status" aria-live="polite">Suggestions use Jind areas. Choose a suggestion or enter a place, then leave this field to look it up.</p><p class="location-note">Your place name is sent to OpenStreetMap for lookup. Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</p></div>
@@ -191,21 +192,21 @@ export class MerchantView extends BaseView {
             <div><label for="business-lng">Longitude</label><input id="business-lng" inputmode="decimal" value="${esc(value.lng)}" placeholder="Filled from location"></div>
           </div>
           <div class="row">
-            <div><label for="business-phone">Mobile number${isNew ? " (required)" : ""}</label><input id="business-phone" type="tel" inputmode="numeric" pattern="[6-9][0-9]{9}" maxlength="10" autocomplete="tel" required value="${esc(value.phone)}" ${isNew ? "" : "readonly"}></div>
-            <div class="whatsapp-field"><label for="business-whatsapp">WhatsApp <span class="label-hint">Optional</span></label><input id="business-whatsapp" inputmode="numeric" maxlength="10" value="${esc(value.whatsapp)}"><label class="same-phone-option"><input id="whatsapp-same-phone" type="checkbox" ${value.phone && value.whatsapp === value.phone ? "checked" : ""}> Same as mobile number</label></div>
+            <div><label for="business-phone">${isNew ? "Mobile number (required) / मोबाइल नंबर (ज़रूरी)" : "Mobile number"}</label><input id="business-phone" type="tel" inputmode="numeric" pattern="[6-9][0-9]{9}" maxlength="10" autocomplete="tel" required value="${esc(value.phone)}" ${isNew ? "" : "readonly"}></div>
+            <div class="whatsapp-field"><label for="business-whatsapp">WhatsApp <span class="label-hint">${hi("Optional", "वैकल्पिक")}</span></label><input id="business-whatsapp" inputmode="numeric" maxlength="10" value="${esc(value.whatsapp)}"><label class="same-phone-option"><input id="whatsapp-same-phone" type="checkbox" ${value.phone && value.whatsapp === value.phone ? "checked" : ""}> ${hi("Same as mobile number", "मोबाइल नंबर जैसा ही")}</label></div>
           </div>
-          <label for="business-owner">Owner name <span class="label-hint">Optional</span></label><input id="business-owner" maxlength="60" autocomplete="name" value="${esc(value.owner)}">
+          <label for="business-owner">${hi("Owner name", "मालिक का नाम")} <span class="label-hint">${hi("Optional", "वैकल्पिक")}</span></label><input id="business-owner" maxlength="60" autocomplete="name" value="${esc(value.owner)}">
         </section>
         <section class="merchant-panel" role="tabpanel" id="panel-attachments" aria-labelledby="tab-attachments" data-panel="attachments" hidden>
-          ${isNew ? '<div class="registration-panel-heading"><p class="auth-eyebrow">STEP 3 OF 3</p><h2>Add business photos</h2><p>Add at least one clear picture of your shop, products or services. You can add up to 10 photos.</p></div>' : '<p class="panel-intro">Add clear photos of your storefront, products or services. Add up to 10 photos.</p>'}
+          ${isNew ? '<div class="registration-panel-heading"><p class="auth-eyebrow">STEP 3 OF 3</p><h2>Add business photos / व्यवसाय की फ़ोटो जोड़ें</h2><p>Add at least one clear picture of your shop, products or services. You can add up to 10 photos. / अपनी दुकान, सामान या सेवाओं की कम से कम एक साफ़ फ़ोटो जोड़ें। अधिकतम 10 फ़ोटो।</p></div>' : '<p class="panel-intro">Add clear photos of your storefront, products or services. Add up to 10 photos.</p>'}
           <label class="upload-drop ${this.photos.length >= 10 ? "at-limit" : ""}" for="business-photos" aria-disabled="${this.photos.length >= 10}"><span class="upload-icon" aria-hidden="true">${this.photos.length >= 10 ? "✓" : "＋"}</span><strong>${this.photos.length >= 10 ? "Photo limit reached" : isNew && !this.photos.length ? "Add at least one photo" : "Add photos"}</strong><span>Choose image files from your device</span><small aria-live="polite">JPEG, PNG, WebP or AVIF · ${this.photos.length} of 10 added</small><input id="business-photos" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple aria-describedby="${isNew ? "photo-help registration-photo-error" : "photo-help"}" ${isNew ? "required" : ""} ${this.photos.length >= 10 ? "disabled" : ""}></label>
           ${isNew ? '<p class="form-error registration-photo-error" id="registration-photo-error" role="alert" aria-live="polite"></p>' : ""}
           <span id="photo-help" class="sr">You can add up to 10 photos. Remove a photo to replace it.</span>
           <div class="photo-list merchant-photo-list" id="photo-list">${this.photoMarkup()}</div>
-          ${isNew ? '<label class="remember-option registration-remember"><input id="merchant-remember" type="checkbox"><span><strong>Keep me signed in</strong><small>Stay signed in on this device for up to 90 days</small></span></label>' : ""}
+          ${isNew ? '<label class="remember-option registration-remember"><input id="merchant-remember" type="checkbox"><span><strong>Keep me signed in / मुझे साइन इन रखें</strong><small>Stay signed in on this device for up to 90 days / इस डिवाइस पर 90 दिन तक साइन इन रहें</small></span></label>' : ""}
         </section>
         ${!isNew ? '<div class="merchant-form-footer"><span class="meta">Changes may require admin approval.</span><div class="btns"><button class="btn ghost" id="preview-business" type="button">Preview listing</button><button class="btn ac" id="save-business" type="submit">Save changes</button></div></div>' : ""}
-      </form></div>${isNew ? `<div class="merchant-registration-dock"><span class="registration-dock-label" id="registration-dock-label">Step 1 of 3 · Business</span><div class="registration-dock-actions"><button class="btn ghost" id="registration-back" type="button" disabled>Back</button><button class="btn ac" id="registration-next" type="button">Continue to location</button><button class="btn ghost" id="preview-business" type="button" hidden>Preview</button><button class="btn ac" id="save-business" type="submit" form="business-form" hidden>Register business</button><a class="registration-login-link" href="#/merchant">Already registered? Sign in</a></div></div>` : `<section class="box merchant-security-card"><div><p class="auth-eyebrow">Account security</p><h2>Merchant sign-in PIN</h2><p class="meta">Change your PIN whenever you need to. Your current PIN is required.</p></div><button class="btn ghost" id="change-merchant-pin" type="button">${icon("key")} Change PIN</button></section>`}<dialog class="listing-preview" id="listing-preview" aria-label="Business listing preview"></dialog>`;
+      </form></div>${isNew ? `<div class="merchant-registration-dock"><span class="registration-dock-label" id="registration-dock-label">Step 1 of 3 · Business</span><div class="registration-dock-actions"><button class="btn ghost" id="registration-back" type="button" disabled>Back / पीछे</button><button class="btn ac" id="registration-next" type="button">Continue / आगे बढ़ें</button><button class="btn ghost" id="preview-business" type="button" hidden>Preview</button><button class="btn ac" id="save-business" type="submit" form="business-form" hidden>Register business / व्यवसाय पंजीकृत करें</button><a class="registration-login-link" href="#/merchant">Already registered? Sign in</a></div></div>` : `<section class="box merchant-security-card"><div><p class="auth-eyebrow">Account security</p><h2>Merchant sign-in PIN</h2><p class="meta">Change your PIN whenever you need to. Your current PIN is required.</p></div><button class="btn ghost" id="change-merchant-pin" type="button">${icon("key")} Change PIN</button></section>`}<dialog class="listing-preview" id="listing-preview" aria-label="Business listing preview"></dialog>`;
 
     this.updateCompleteness();
     if (isNew) this.updateRegistrationProgress();
@@ -441,7 +442,7 @@ export class MerchantView extends BaseView {
     const percent = Math.round(((index + 1) / steps.length) * 100);
     const label = this.$("#registration-progress-label");
     const bar = this.$("#registration-progress-bar");
-    if (label) label.textContent = `Step ${index + 1} of ${steps.length}`;
+    if (label) label.textContent = `Step ${index + 1} of ${steps.length} / चरण ${index + 1}/${steps.length}`;
     if (bar) {
       bar.style.width = `${percent}%`;
       bar.parentElement.setAttribute("aria-valuenow", String(percent));
@@ -454,7 +455,7 @@ export class MerchantView extends BaseView {
   updateRegistrationDock() {
     if (!this.isRegistration) return;
     const steps = ["business", "location", "attachments"];
-    const labels = ["Business", "Location & contact", "Photos"];
+    const labels = ["Business / व्यवसाय", "Location & contact / पता और संपर्क", "Photos / फ़ोटो"];
     const index = steps.indexOf(this.activeRegistrationStep);
     const back = this.$("#registration-back");
     const next = this.$("#registration-next");
@@ -465,7 +466,7 @@ export class MerchantView extends BaseView {
     if (next) next.hidden = index === steps.length - 1;
     if (preview) preview.hidden = index !== steps.length - 1;
     if (submit) submit.hidden = index !== steps.length - 1;
-    if (stepLabel) stepLabel.textContent = `Step ${index + 1} of ${steps.length} · ${labels[index]}`;
+    if (stepLabel) stepLabel.textContent = `Step ${index + 1} of ${steps.length} / चरण ${index + 1}/${steps.length} · ${labels[index]}`;
   }
 
   refreshPhotoList() {
@@ -701,7 +702,7 @@ export class MerchantView extends BaseView {
     } catch (error) {
       Toast.show(error.message);
       button.disabled = false;
-      button.textContent = isNew ? "Register business" : "Save changes";
+      button.textContent = isNew ? "Register business / व्यवसाय पंजीकृत करें" : "Save changes";
     }
   }
 }

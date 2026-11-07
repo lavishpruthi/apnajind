@@ -52,7 +52,7 @@ export function scheduleFields(value) {
   const current = parseHours(value) || {};
   return DAYS.map((day, index) => {
     const entry = current[day] || {};
-    return `<fieldset class="hours-day"><legend>${DAY_NAMES[index]}</legend><label class="hours-closed"><input type="checkbox" name="hours-${day}-closed" ${entry.closed || (!entry.open && !entry.close) ? "checked" : ""}> Closed</label><div class="hours-times"><label>Opens<input type="time" name="hours-${day}-open" value="${/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.open || "") ? entry.open : "09:00"}" ${entry.closed ? "disabled" : ""}></label><label>Closes<input type="time" name="hours-${day}-close" value="${/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.close || "") ? entry.close : "17:00"}" ${entry.closed ? "disabled" : ""}></label></div></fieldset>`;
+    return `<fieldset class="hours-day"><legend>${DAY_NAMES[index]}</legend><label class="hours-closed"><input type="checkbox" name="hours-${day}-closed" ${entry.closed ? "checked" : ""}> Closed / बंद</label><div class="hours-times"><label>Opens<input type="time" name="hours-${day}-open" value="${/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.open || "") ? entry.open : "09:00"}" ${entry.closed ? "disabled" : ""}></label><label>Closes<input type="time" name="hours-${day}-close" value="${/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.close || "") ? entry.close : "17:00"}" ${entry.closed ? "disabled" : ""}></label></div></fieldset>`;
   }).join("");
 }
 

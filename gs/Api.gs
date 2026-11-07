@@ -64,6 +64,7 @@ const ROUTES = {
   me: { perm: null, fn: (d, c) => AuthService.profile(c) },
   customerRegister: { fn: (d) => CustomerAuthService.register(d) },
   customerLogin: { fn: (d) => CustomerAuthService.login(d) },
+  customerResetRequest: { fn: (d) => CustomerAuthService.resetRequest(d) },
   customerMe: {
     auth: "customer",
     fn: (d, c) => CustomerAuthService.profile(c),
@@ -106,6 +107,7 @@ const SERIALIZED_ACTIONS = new Set([
   "mLogin",
   "mPinChange",
   "customerRegister",
+  "customerResetRequest",
   "customerDelete",
   "offerSave",
   "offerDelete",

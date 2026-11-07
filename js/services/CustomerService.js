@@ -64,6 +64,10 @@ export class CustomerService {
     return CustomerService.profile;
   }
 
+  static resetRequest(identity) {
+    return Api.request("customerResetRequest", { identity });
+  }
+
   static async deleteAccount(password) {
     await Api.request("customerDelete", { token: CustomerService.token, password });
     CustomerService.logout(false);

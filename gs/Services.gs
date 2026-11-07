@@ -372,6 +372,31 @@ class CustomerAuthService {
       profile: CustomerAuthService.profile(customer),
     };
   }
+  // Logs a request for staff to act on. Same reply whether or not the account exists.
+  static resetRequest(d) {
+    const identity = clean_(d.identity, 120).toLowerCase();
+    if (!identity) throw new AppError("Enter your mobile number or email");
+    const key = "pwreset_" + Utilities.base64EncodeWebSafe(identity).slice(0, 80);
+    const cache = CacheService.getScriptCache();
+    if (!cache.get(key)) {
+      cache.put(key, "1", 600); // shortcut: one request per identity per 10 min, add real throttling if abused
+      const customer = new CustomerRepo()
+        .all()
+        .find(
+          (c) =>
+            c.status === "active" &&
+            (String(c.email).toLowerCase() === identity ||
+              String(c.phone) === identity),
+        );
+      if (customer)
+        new PasswordResetRepo().insert({
+          customerId: customer.id,
+          identity,
+          status: "open",
+        });
+    }
+    return true;
+  }
   static remove(d, customer) {
     const password = String(d.password || "");
     if (

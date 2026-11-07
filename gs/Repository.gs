@@ -294,6 +294,15 @@ class UserRepo extends Repository {
     return sheet;
   }
 }
+class PasswordResetRepo extends Repository {
+  constructor() {
+    super(
+      "PasswordResets",
+      ["id", "customerId", "identity", "status", "created", "updated"],
+      "R",
+    );
+  }
+}
 class CustomerRepo extends Repository {
   constructor() {
     super(
