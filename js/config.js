@@ -5,7 +5,8 @@ const LOCAL_API_URL = "https://script.google.com/macros/s/AKfycbxV1QKhpU7JikhsjR
 
 /** Configure the production Apps Script Web App (/exec) URL. */
 const PRODUCTION_API_URL =
-  "https://script.google.com/macros/s/AKfycbyvNAZ9PFeNAIXxOL0unpXtoTZF7M53FdFFuZxH0bysikIcgzRSAzryBeXBwjMeH13w/exec";
+  "https://script.google.com/macros/s/AKfycbyc9pF6PkBp381t6Z5EjG7NDUwCwu-BPnFO1eFMIj8xRBNKH8r564Cs0zmJY9ef-fuc/exec";
+
 
 export const CONFIG = {
   API_URL: LOCAL_HOSTS.has(window.location.hostname)
